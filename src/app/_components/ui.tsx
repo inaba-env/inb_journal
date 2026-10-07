@@ -4,7 +4,7 @@ export function Card({
   aside,
   children,
 }: {
-  title: string;
+  title: React.ReactNode;
   icon?: React.ReactNode;
   aside?: React.ReactNode;
   children: React.ReactNode;

@@ -129,18 +129,26 @@ export function DayView({ data }: { data: DayData }) {
             {(Object.keys(KIND_LABEL) as LearningKind[]).map((kind) => {
               const items = data.learnings.filter((l) => l.kind === kind);
               return (
-                <Card key={kind} title={KIND_LABEL[kind]} aside={items.length ? `${items.length}件` : undefined}>
+                <div key={kind} className="flex flex-col gap-2">
+                  <h3 className="px-1 pt-1 text-xs text-zinc-500">
+                    {KIND_LABEL[kind]}
+                    {items.length > 0 && `（${items.length}）`}
+                  </h3>
                   {items.length === 0 ? (
-                    <p className="text-sm text-zinc-400">なし</p>
+                    <p className="px-1 text-sm text-zinc-400">なし</p>
                   ) : (
-                    <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
-                      {items.map((l) => (
-                        <li key={l.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
-                          {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
-                          <p className="font-medium">
+                    items.map((l) => (
+                      <Card
+                        key={l.id}
+                        title={
+                          <span className="text-base font-medium text-zinc-900 dark:text-zinc-100">
                             {l.title}
                             <PrivateMark show={l.is_private} />
-                          </p>
+                          </span>
+                        }
+                      >
+                        <div className="-mt-2 flex flex-col gap-1">
+                          {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
                           <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
                           {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
                           {l.tags.length > 0 && (
@@ -152,11 +160,11 @@ export function DayView({ data }: { data: DayData }) {
                               ))}
                             </p>
                           )}
-                        </li>
-                      ))}
-                    </ul>
+                        </div>
+                      </Card>
+                    ))
                   )}
-                </Card>
+                </div>
               );
             })}
           </Section>
