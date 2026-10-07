@@ -71,6 +71,10 @@ export type DayData = {
   commitmentsReviewed: Commitment[];
   // 感謝の件数は公開してよい（中身は非公開）ので、非公開の分も含めて数える
   gratitudeCount: number;
+  // 振り返り（感謝以外）も件数は公開してよい
+  reflectionCount: number;
+  // 学びの種類ごとの件数（非公開の分も含む）
+  learningCounts: Record<LearningKind, number>;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -100,57 +104,74 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, reflections, learnings, made, reviewed, gratitude] =
-    await Promise.all([
-      db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
-      db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
-      db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
-      db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
-      db
-        .from("workouts")
-        .select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private")
-        .eq("day", day)
-        .in("is_private", privacy),
-      db
-        .from("time_logs")
-        .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("started_at"),
-      db
-        .from("work_sessions")
-        .select("id, started_at, ended_at, duration_min, subject, description, is_private, work_categories(name)")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("started_at"),
-      db
-        .from("reflections")
-        .select("id, kind, content, reason, is_private")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("kind")
-        .order("sort_order"),
-      db
-        .from("learnings")
-        .select("id, title, insight, kind, context, next_action, is_private, media(title), learning_tags(tags(name))")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-      db
-        .from("commitments")
-        .select("id, made_on, content, result, review_note, is_private")
-        .eq("made_on", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-      db
-        .from("commitments")
-        .select("id, made_on, content, result, review_note, is_private")
-        .eq("reviewed_on", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-      db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).eq("kind", "gratitude"),
-    ]);
-  if (gratitude.error) throw new Error(gratitude.error.message);
+  const [
+    dayRow,
+    sleep,
+    nextSleep,
+    office,
+    workouts,
+    timeLogs,
+    workSessions,
+    reflections,
+    learnings,
+    made,
+    reviewed,
+    gratitude,
+    reflectionTotal,
+    learningKinds,
+  ] = await Promise.all([
+    db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
+    db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
+    db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
+    db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
+    db
+      .from("workouts")
+      .select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private")
+      .eq("day", day)
+      .in("is_private", privacy),
+    db
+      .from("time_logs")
+      .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("started_at"),
+    db
+      .from("work_sessions")
+      .select("id, started_at, ended_at, duration_min, subject, description, is_private, work_categories(name)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("started_at"),
+    db
+      .from("reflections")
+      .select("id, kind, content, reason, is_private")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("kind")
+      .order("sort_order"),
+    db
+      .from("learnings")
+      .select("id, title, insight, kind, context, next_action, is_private, media(title), learning_tags(tags(name))")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    db
+      .from("commitments")
+      .select("id, made_on, content, result, review_note, is_private")
+      .eq("made_on", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    db
+      .from("commitments")
+      .select("id, made_on, content, result, review_note, is_private")
+      .eq("reviewed_on", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).eq("kind", "gratitude"),
+    db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).neq("kind", "gratitude"),
+    // 件数を出すためだけに種類を読む（中身は読まない）
+    db.from("learnings").select("kind").eq("day", day),
+  ]);
+  for (const r of [gratitude, reflectionTotal]) if (r.error) throw new Error(r.error.message);
 
   const d = check(dayRow);
   const name = (v: unknown) => (v as { name: string } | null)?.name ?? null;
@@ -198,6 +219,13 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     commitmentsMade: (check(made) ?? []) as Commitment[],
     commitmentsReviewed: (check(reviewed) ?? []) as Commitment[],
     gratitudeCount: gratitude.count ?? 0,
+    reflectionCount: reflectionTotal.count ?? 0,
+    learningCounts: (check(learningKinds) ?? []).reduce((acc, l) => ({ ...acc, [l.kind]: acc[l.kind as LearningKind] + 1 }), {
+      knowledge: 0,
+      insight: 0,
+      practice: 0,
+      reflection: 0,
+    } as Record<LearningKind, number>),
   };
 }
 

@@ -1,25 +1,94 @@
+// セクションとカードの見出しは同じ形にそろえる。
+// 右上には件数（count、非公開の分も含めた総数）か、時間などの量（aside）を出す
+function Heading({
+  title,
+  icon,
+  count,
+  aside,
+}: {
+  title?: React.ReactNode;
+  icon?: React.ReactNode;
+  count?: number;
+  aside?: React.ReactNode;
+}) {
+  const right = count !== undefined ? `${count}件` : aside;
+  if (!title && !right) return null;
+  return (
+    <div className="flex items-baseline justify-between gap-2">
+      <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+        {icon}
+        {title}
+      </h2>
+      {right && <span className="text-xs text-zinc-500 tabular-nums">{right}</span>}
+    </div>
+  );
+}
+
 export function Card({
   title,
   icon,
+  count,
   aside,
   children,
 }: {
-  title: React.ReactNode;
+  title?: React.ReactNode;
   icon?: React.ReactNode;
+  count?: number;
   aside?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-      <div className="flex items-baseline justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
-          {icon}
-          {title}
-        </h2>
-        {aside && <span className="text-xs text-zinc-500">{aside}</span>}
+      <Heading title={title} icon={icon} count={count} aside={aside} />
+      {children}
+    </section>
+  );
+}
+
+// 見出しの下にカードを縦に並べるまとまり
+export function Section({
+  title,
+  count,
+  aside,
+  children,
+}: {
+  title: string;
+  count?: number;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="px-1">
+        <Heading title={title} count={count} aside={aside} />
       </div>
       {children}
     </section>
+  );
+}
+
+// セクションの中の小見出し（学びの種類など）。件数の出し方はセクションと同じ
+export function SubHeading({ title, count }: { title: string; count: number }) {
+  return (
+    <h3 className="flex items-baseline justify-between px-1 pt-1 text-xs text-zinc-500">
+      <span>{title}</span>
+      <span className="tabular-nums">{count}件</span>
+    </h3>
+  );
+}
+
+// 記録がないとき
+export function Empty() {
+  return <p className="text-sm text-zinc-400">記録なし</p>;
+}
+
+// 総数のうち見えていない分（チームの画面で非公開の記録があるとき）
+export function HiddenNote({ total, shown }: { total: number; shown: number }) {
+  if (total <= shown) return null;
+  return (
+    <p className="text-xs text-zinc-500">
+      {shown > 0 ? "ほか" : ""}非公開 {total - shown}件
+    </p>
   );
 }
 
@@ -38,19 +107,6 @@ export function Stat({ label, value, sub }: { label: string; value: React.ReactN
       <span className="text-lg font-semibold tabular-nums">{value}</span>
       {sub && <span className="text-xs text-zinc-500">{sub}</span>}
     </div>
-  );
-}
-
-// カードを並べる見出し付きのまとまり（中身は呼び出し側のカード）
-export function Section({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <section className="flex flex-col gap-2">
-      <div className="flex items-baseline justify-between gap-2 px-1">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</h2>
-        {aside && <span className="text-xs text-zinc-500">{aside}</span>}
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -80,7 +136,7 @@ export function PairStat({
   );
 }
 
-// 欄の中でカードを縦に並べる
+// セクションの中でカードを縦に並べる
 export function CardStack({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-2">{children}</div>;
 }

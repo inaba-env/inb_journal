@@ -4,7 +4,7 @@ import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
-import { Card, CardStack, PairStat, PrivateMark, Section, Stat } from "./ui";
+import { Card, CardStack, Empty, HiddenNote, PairStat, PrivateMark, Section, Stat, SubHeading } from "./ui";
 
 // 感謝は「今日の感謝」の欄に出すので、振り返りのカードには出さない
 const REFLECTION_LABEL: Record<Exclude<ReflectionKind, "gratitude">, string> = {
@@ -194,7 +194,9 @@ export function DayView({ data }: { data: DayData }) {
         <div className="flex flex-col gap-4">
           <Section title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             {data.timeLogs.length === 0 ? (
-              <p className="px-1 text-sm text-zinc-500">記録なし</p>
+              <Card>
+                <Empty />
+              </Card>
             ) : (
               <CardStack>
                 {groupBy(data.timeLogs, (t) => t.category ?? "未分類").map(([category, blocks]) => (
@@ -210,9 +212,11 @@ export function DayView({ data }: { data: DayData }) {
               </CardStack>
             )}
           </Section>
-          <Section title="運動">
+          <Section title="運動" count={data.workouts.length}>
             {data.workouts.length === 0 ? (
-              <p className="px-1 text-sm text-zinc-500">記録なし</p>
+              <Card>
+                <Empty />
+              </Card>
             ) : (
               <CardStack>
                 {data.workouts.map((w) => (
@@ -236,17 +240,14 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
         </div>
         <div className="flex flex-col gap-4 lg:row-span-2">
-          <Section title="学び" aside={`${data.learnings.length}件`}>
+          <Section title="学び" count={Object.values(data.learningCounts).reduce((a, b) => a + b, 0)}>
             {(Object.keys(KIND_LABEL) as LearningKind[]).map((kind) => {
               const items = data.learnings.filter((l) => l.kind === kind);
               return (
                 <div key={kind} className="flex flex-col gap-2">
-                  <h3 className="px-1 pt-1 text-xs text-zinc-500">
-                    {KIND_LABEL[kind]}
-                    {items.length > 0 && `（${items.length}）`}
-                  </h3>
+                  <SubHeading title={KIND_LABEL[kind]} count={data.learningCounts[kind]} />
                   {items.length === 0 ? (
-                    <p className="px-1 text-sm text-zinc-400">なし</p>
+                    <Card>{data.learningCounts[kind] > 0 ? <HiddenNote total={data.learningCounts[kind]} shown={0} /> : <Empty />}</Card>
                   ) : (
                     <CardStack>
                       {items.map((l) => (
@@ -278,6 +279,7 @@ export function DayView({ data }: { data: DayData }) {
                           </div>
                         </Card>
                       ))}
+                      <HiddenNote total={data.learningCounts[kind]} shown={items.length} />
                     </CardStack>
                   )}
                 </div>
@@ -286,10 +288,11 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
         </div>
         <div className="flex flex-col gap-4 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          <Section title="今日の感謝" aside={`${data.gratitudeCount}件`}>
-            <Card title={`感謝 ${data.gratitudeCount}件`}>
-              {gratitude.length > 0 ? (
-                <ul className="-mt-1 flex flex-col gap-1 text-sm">
+          <Section title="今日の感謝" count={data.gratitudeCount}>
+            <Card>
+              {data.gratitudeCount === 0 && <Empty />}
+              {gratitude.length > 0 && (
+                <ul className="flex flex-col gap-1 text-sm">
                   {gratitude.map((g) => (
                     <li key={g.id}>
                       ・{g.content}
@@ -297,21 +300,20 @@ export function DayView({ data }: { data: DayData }) {
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="-mt-1 text-sm text-zinc-500">{data.gratitudeCount > 0 ? "中身は非公開です" : "記録なし"}</p>
               )}
+              <HiddenNote total={data.gratitudeCount} shown={gratitude.length} />
             </Card>
           </Section>
-          {(data.commitmentsReviewed.length > 0 || reflections.length > 0 || data.commitmentsMade.length > 0) && (
+          {(data.commitmentsReviewed.length > 0 || data.reflectionCount > 0 || data.commitmentsMade.length > 0) && (
             <Section title="振り返りと約束">
               <CardStack>
                 {data.commitmentsReviewed.length > 0 && (
-                  <Card title="昨日の約束の振り返り">
+                  <Card title="昨日の約束の振り返り" count={data.commitmentsReviewed.length}>
                     <Commitments items={data.commitmentsReviewed} showResult />
                   </Card>
                 )}
-                {reflections.length > 0 && (
-                  <Card title="振り返り">
+                {data.reflectionCount > 0 && (
+                  <Card title="振り返り" count={data.reflectionCount}>
                     <dl className="flex flex-col gap-3">
                       {(Object.keys(REFLECTION_LABEL) as (keyof typeof REFLECTION_LABEL)[])
                         .map((kind) => [kind, reflections.filter((r) => r.kind === kind)] as const)
@@ -329,10 +331,11 @@ export function DayView({ data }: { data: DayData }) {
                           </div>
                         ))}
                     </dl>
+                    <HiddenNote total={data.reflectionCount} shown={reflections.length} />
                   </Card>
                 )}
                 {data.commitmentsMade.length > 0 && (
-                  <Card title="明日に向けて">
+                  <Card title="明日に向けて" count={data.commitmentsMade.length}>
                     <Commitments items={data.commitmentsMade} />
                   </Card>
                 )}
