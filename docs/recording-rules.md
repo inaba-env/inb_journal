@@ -86,14 +86,14 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 
 ## work_sessions
 
-- `~/.secretary/bin/journal-sync.py` が `ログ/YYYY-MM-DD.md`（Claude Code の日次ログ）から自動で入れる。8時・18時に launchd で実行され、同じ日の `source = 'claude_code'` の行は丸ごと置き換える
+- `~/.secretary/bin/journal-sync.py` が `ログ/YYYY-MM-DD.md`（Claude Code の日次ログ）から自動で入れる。毎時0分と8時（前日分）に launchd で実行され、同じ日の `source = 'claude_code'` の行は丸ごと置き換える
 - 書き込みは Data API で関数 `replace_work_sessions` を呼んで行う。`service_role` にはテーブルへの書き込み権限を与えず、この関数（と `replace_github_activities`）を呼ぶ権限だけを与えている。接続情報は `~/.secretary/.credentials/inb_journal_api.env`
 - カテゴリは `work_categories` を正とする。カテゴリを増やすときはこのテーブルに行を足す（スクリプトは毎回ここから読む）
 - 手で足す作業は `source` を `manual` などにして、自動の置き換えに巻き込まれないようにする
 
 ## github_activities
 
-- `~/.secretary/bin/journal-sync.py` が `gh search` で集め、関数 `replace_github_activities` で自動で入れる。8時・18時に launchd で実行され（`cc-daily-summary.sh` から呼ぶ）、同じ日の行は丸ごと置き換える。手では入れない
+- `~/.secretary/bin/journal-sync.py` が `gh search` で集め、関数 `replace_github_activities` で自動で入れる。毎時0分と8時（前日分）に launchd で実行され（`cc-daily-summary.sh` から呼ぶ）、同じ日の行は丸ごと置き換える。手では入れない
 - 入るのは inaba-env が書いたコミット・作ったPR・マージされたPR・作ったIssue。コミットは GitHub の検索の仕様上、既定ブランチに入ったものだけで、マージコミットは除く
 
 ## time_logs
