@@ -70,9 +70,13 @@ export type DayData = {
     is_private: boolean;
     // ランのとき
     distance_km: number | null;
-    // 筋トレのとき（種目ごと、sort_order 順）
+    // 筋トレのとき（種目ごと、sort_order 順）。種目の中身は本人にだけ返し、訪問者には空にする
     exercises: Exercise[];
+    // 種目の数。数は公開してよいので訪問者にも返す
+    exercise_count: number;
   }[];
+  // その日の運動の回数。回数は公開してよいので、非公開の運動も含めて数える
+  activityCount: number;
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
   github: GithubActivity[];
@@ -110,7 +114,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -123,6 +127,8 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .eq("day", day)
       .in("is_private", privacy)
       .order("sort_order", { referencedTable: "workouts" }),
+    // 回数を出すためだけに数える（中身は読まない）
+    db.from("activities").select("id", { count: "exact", head: true }).eq("day", day),
     db
       .from("time_logs")
       .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
@@ -170,8 +176,13 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       ...a,
       // runs は1対1だが、配列で返ってきても扱えるようにする
       distance_km: [runs].flat()[0]?.distance_km ?? null,
-      exercises: workouts as Exercise[],
+      exercises: includePrivate ? (workouts as Exercise[]) : [],
+      exercise_count: workouts.length,
     })),
+    activityCount: (() => {
+      if (activityCount.error) throw new Error(activityCount.error.message);
+      return activityCount.count ?? 0;
+    })(),
     timeLogs: (check(timeLogs) ?? []).map((t) => ({
       id: t.id,
       started_at: t.started_at,

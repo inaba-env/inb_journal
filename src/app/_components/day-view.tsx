@@ -6,7 +6,7 @@ import { timeColor } from "./categories";
 import { GithubSection } from "./github";
 import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
-import { Card, CardStack, Empty, PairStat, PrivateMark, Section, Stat } from "./ui";
+import { Card, CardStack, Empty, HiddenNote, PairStat, PrivateMark, Section, Stat } from "./ui";
 
 // 最初に出てきた順でまとめる
 function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
@@ -28,6 +28,11 @@ function formatExercise(e: Exercise): string {
   const sets = e.sets != null ? `${e.sets}セット` : "";
   const amount = load && sets ? `${load}×${sets}` : load || sets;
   return [e.exercise, amount, e.note && `（${e.note}）`].filter(Boolean).join(" ");
+}
+
+// 訪問者には種目の中身を見せず、数だけ出す
+function exerciseCount(n: number): string | null {
+  return n > 0 ? `${n}種目` : null;
 }
 
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
@@ -159,7 +164,7 @@ export function DayView({ data }: { data: DayData }) {
                     label:
                       w.distance_km != null
                         ? `${w.distance_km}km`
-                        : w.exercises.map((e) => e.exercise).join("・") || null,
+                        : w.exercises.map((e) => e.exercise).join("・") || exerciseCount(w.exercise_count),
                     detail: w.note,
                     is_private: w.is_private,
                   },
@@ -194,8 +199,8 @@ export function DayView({ data }: { data: DayData }) {
               </CardStack>
             )}
           </Section>
-          <Section title="運動" count={data.activities.length}>
-            {data.activities.length === 0 ? (
+          <Section title="運動" count={data.activityCount}>
+            {data.activityCount === 0 ? (
               <Card>
                 <Empty />
               </Card>
@@ -210,7 +215,11 @@ export function DayView({ data }: { data: DayData }) {
                         <PrivateMark show={w.is_private} />
                       </>
                     }
-                    aside={[w.distance_km != null && `${w.distance_km}km`, w.duration_min != null && formatDuration(w.duration_min)]
+                    aside={[
+                      w.distance_km != null && `${w.distance_km}km`,
+                      w.exercises.length === 0 && exerciseCount(w.exercise_count),
+                      w.duration_min != null && formatDuration(w.duration_min),
+                    ]
                       .filter(Boolean)
                       .join("・")}
                   >
@@ -224,6 +233,11 @@ export function DayView({ data }: { data: DayData }) {
                     {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
                   </Card>
                 ))}
+                {data.activities.length < data.activityCount && (
+                  <Card>
+                    <HiddenNote total={data.activityCount} shown={data.activities.length} />
+                  </Card>
+                )}
               </CardStack>
             )}
           </Section>
