@@ -1,6 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { clientIp, isAllowedIp } from "@/lib/access";
+import { clientIp, isAllowedIp, isOwnerEmail } from "@/lib/access";
 
 const PUBLIC_PATHS = ["/login", "/auth/"];
 
@@ -29,10 +29,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) return response;
 
-  const isOwner =
-    typeof data?.claims?.email === "string" &&
-    data.claims.email.toLowerCase() === process.env.OWNER_EMAIL?.toLowerCase();
-  if (isOwner || isAllowedIp(clientIp(request.headers))) return response;
+  if (isOwnerEmail(data?.claims?.email) || isAllowedIp(clientIp(request.headers))) return response;
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
