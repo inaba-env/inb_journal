@@ -25,14 +25,14 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 
 | テーブル | 中身 |
 |---|---|
-| `learnings` | 学び（日付・タイトル・本文・タグ） |
+| `notes` | その日に書き留めたこと（学び・振り返り・感謝・音楽）。大分類 `note_categories`・小分類 `note_kinds` で分け、画面はこの分け方どおりにセクション・小見出し・カードで出す |
 | `sleep_logs` | 睡眠。`sleep_date` は起きた日。`duration_min` は自動計算 |
 | `habits` / `habit_checks` | 期間つきの習慣目標と、日ごとの達成 |
 | `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |
 
 - 各テーブルとも RLS を有効にし、`anon` / `authenticated` には権限を与えていない（Data API から直接は読めない）
 - Web が使う `service_role` には `SELECT` だけを与えている
-- 公開・非公開は `learnings` / `sleep_logs` / `habits` / `metrics` の `is_private` で決める。`habit_checks` と `metric_logs` は親に従う
+- 公開・非公開は各テーブルの `is_private` で決める（`notes` / `sleep_logs` / `habits` / `metrics` など）。件数は非公開の分も含めて出す。`habit_checks` と `metric_logs` は親に従う
 
 ## ローカルで動かす
 

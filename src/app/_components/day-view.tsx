@@ -1,29 +1,11 @@
 import Link from "next/link";
-import type { DayData, LearningKind, ReflectionKind } from "@/lib/data";
+import type { DayData } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
+import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
-import { Card, CardStack, Empty, HiddenNote, PairStat, PrivateMark, Section, Stat, SubHeading } from "./ui";
-
-// 感謝は「今日の感謝」の欄に出すので、振り返りのカードには出さない
-const REFLECTION_LABEL: Record<Exclude<ReflectionKind, "gratitude">, string> = {
-  highlight: "ハイライト",
-  went_well: "できたこと",
-  went_badly: "うまくいかなかったこと",
-  carried_over: "繰り越したタスク",
-  lesson: "教訓",
-  thought: "考えたこと",
-  quiet_good: "静かな良いこと",
-  catch_up: "キャッチアップ",
-  music: "今日の音楽",
-};
-
-const KIND_LABEL: Record<LearningKind, string> = {
-  knowledge: "知識",
-  insight: "気づき",
-  practice: "やり方",
-};
+import { Card, CardStack, Empty, PairStat, PrivateMark, Section, Stat } from "./ui";
 
 // 最初に出てきた順でまとめる
 function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
@@ -100,9 +82,9 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
 }
 
 export function DayView({ data }: { data: DayData }) {
-  const gratitude = data.reflections.filter((r) => r.kind === "gratitude");
-  const reflections = data.reflections.filter((r) => r.kind !== "gratitude");
-  const reflectionTotal = Object.values(data.reflectionCounts).reduce((a, b) => a + (b ?? 0), 0);
+  // 学びは2列目、それ以外の大分類（振り返り・感謝 など）は3列目に並べる
+  const learning = data.noteCategories.find((c) => c.key === "learning");
+  const others = data.noteCategories.filter((c) => c.key !== "learning");
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
@@ -227,102 +209,12 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
         </div>
         <div className="flex flex-col gap-4 lg:row-span-2">
-          <Section title="学び" count={Object.values(data.learningCounts).reduce((a, b) => a + b, 0)}>
-            {(Object.keys(KIND_LABEL) as LearningKind[]).map((kind) => {
-              const items = data.learnings.filter((l) => l.kind === kind);
-              return (
-                <div key={kind} className="flex flex-col gap-2">
-                  <SubHeading title={KIND_LABEL[kind]} count={data.learningCounts[kind]} />
-                  {items.length === 0 ? (
-                    <Card>{data.learningCounts[kind] > 0 ? <HiddenNote total={data.learningCounts[kind]} shown={0} /> : <Empty />}</Card>
-                  ) : (
-                    <CardStack>
-                      {items.map((l) => (
-                        <Card
-                          key={l.id}
-                          title={
-                            <span className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-                              {l.title}
-                              <PrivateMark show={l.is_private} />
-                            </span>
-                          }
-                        >
-                          <div className="-mt-2 flex flex-col gap-1">
-                            {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
-                            <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
-                            {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
-                            {l.tags.length > 0 && (
-                              <p className="flex flex-wrap gap-1 pt-1">
-                                {l.tags.map((t) => (
-                                  <span
-                                    key={t}
-                                    className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </p>
-                            )}
-                          </div>
-                        </Card>
-                      ))}
-                      <HiddenNote total={data.learningCounts[kind]} shown={items.length} />
-                    </CardStack>
-                  )}
-                </div>
-              );
-            })}
-          </Section>
+          {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
         <div className="flex flex-col gap-4 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          <Section title="今日の感謝" count={data.gratitudeCount}>
-            <Card>
-              {data.gratitudeCount === 0 && <Empty />}
-              {gratitude.length > 0 && (
-                <ul className="flex flex-col gap-1 text-sm">
-                  {gratitude.map((g) => (
-                    <li key={g.id}>
-                      ・{g.content}
-                      <PrivateMark show={g.is_private} />
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <HiddenNote total={data.gratitudeCount} shown={gratitude.length} />
-            </Card>
-          </Section>
-          {reflectionTotal > 0 && (
-            <Section title="振り返り" count={reflectionTotal}>
-              {(Object.keys(REFLECTION_LABEL) as (keyof typeof REFLECTION_LABEL)[])
-                .filter((kind) => (data.reflectionCounts[kind] ?? 0) > 0)
-                .map((kind) => {
-                  const items = reflections.filter((r) => r.kind === kind);
-                  const count = data.reflectionCounts[kind] ?? 0;
-                  return (
-                    <div key={kind} className="flex flex-col gap-2">
-                      <SubHeading title={REFLECTION_LABEL[kind]} count={count} />
-                      <CardStack>
-                        {items.map((r) => (
-                          <Card key={r.id}>
-                            <p className="text-sm text-zinc-700 dark:text-zinc-300">
-                              {r.content}
-                              {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
-                              <PrivateMark show={r.is_private} />
-                            </p>
-                            {r.media && <p className="text-xs text-zinc-500">{r.media}</p>}
-                          </Card>
-                        ))}
-                        {items.length < count && (
-                          <Card>
-                            <HiddenNote total={count} shown={items.length} />
-                          </Card>
-                        )}
-                      </CardStack>
-                    </div>
-                  );
-                })}
-            </Section>
-          )}
+          {others.map((c) => (
+            <NotesSection key={c.key} category={c} notes={data.notes} counts={data.noteCounts} />
+          ))}
         </div>
       </div>
     </div>

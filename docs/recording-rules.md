@@ -1,7 +1,7 @@
 # 記録のルール（構造化の基準）
 
-Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで DB に入れるときの基準。
-**ルールはここだけに書く。** `/learn` スキルや移行スクリプトはこのファイルを参照する。
+Claude Code が入力（会話など）を読んで DB に入れるときの基準。
+**ルールはここだけに書く。** スキルや移行スクリプトはこのファイルを参照する。
 
 ## 基本
 
@@ -16,8 +16,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 | 入力の中身 | テーブル |
 |---|---|
-| 知識・気づき・仕事のやり方 | `learnings` |
-| その日の出来事の振り返り（ハイライト、感謝、できたこと、自分の行動から得た教訓 など） | `reflections` |
+| 学び・振り返り・感謝・音楽など、その日に書き留めたこと | `notes`（下の「notes」参照） |
 | 「明日に向けて」などの約束。翌日以降の Check / Act | `commitments` |
 | 寝た・起きた時刻 | `sleep_logs`（`day` は起きた日） |
 | ラン・筋トレなどの運動 | `workouts` |
@@ -34,40 +33,33 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 予定（タイムラインの「〇時から朝ラン」など）は記録しない。**実際にやったと書かれていること**だけを入れる。
 
-## learnings
+## notes
+
+その日に書き留めたことは、すべて `notes` に1件1行で入れる。どの大分類・小分類に入れるかは表（`note_categories` / `note_kinds`）を正とし、**小分類の `description` を読んで判断する**。
+
+| 大分類（`note_categories`） | 小分類（`note_kinds`） |
+|---|---|
+| 学び `learning` | 知識 `knowledge`／気づき `insight`／やり方 `practice` |
+| 振り返り `reflection` | よかったこと `good`／うまくいかなかったこと `bad`／教訓 `lesson`／考えたこと `thought` |
+| 今日の感謝 `gratitude` | 感謝 `gratitude` |
+| 今日の音楽 `music` | 音楽 `music` |
+
+- 学びと振り返りを区別する。知識・考え方・やり方は学び、自分の行動や出来事を振り返ったもの（自分の行動から得た教訓を含む）は振り返り
+- 小分類を増やす・名前を変えるときは、`note_kinds` の行を直す（マイグレーション不要）。画面にもそのまま反映される
 
 | 項目 | 基準 |
 |---|---|
-| `title` | 一言の見出し。30字程度まで |
-| `insight` | 学びの中身を1〜3文で。キャプチャの時刻や Markdown 記法は落とす |
-| `kind` | `knowledge`（知識・用語）／`insight`（気づき・考え方）／`practice`（仕事のやり方・手順）。自分の行動を振り返って得た教訓は学びではなく `reflections`（`lesson`）に入れる |
-| `context` | どの場面で得たか（朝礼、案件対応中、読書 など）。分からなければ null |
+| `title` | 一言の見出し（30字程度まで）。学びには必ず付ける。振り返り・感謝・音楽は空でよい |
+| `body` | 中身を1〜3文で。時刻や Markdown 記法は落とす |
+| `context` | どの場面のことか（朝礼、案件対応中、読書 など）。分からなければ null |
+| `reason` | 理由（うまくいかなかったことの理由など） |
 | `next_action` | 次にどう活かすか。**入力に書いてあるときだけ** |
+| `media_id` | 本・番組に関わるとき `media` につなぐ |
 | `project_id` | 特定の案件に関わるときだけ `projects` につなぐ |
-| `media_id` | 本・番組から得た学びのとき `media` につなぐ |
-| タグ | `tags` / `learning_tags` で2〜4個。既存のタグがあればそれを使い、表記を増やさない |
-| 人 | 人名が出てきたら `people` / `learning_people` につなぐ |
+| タグ | `tags` / `note_tags`。学びには2〜4個付ける。既存のタグがあればそれを使い、表記を増やさない |
+| 人 | 人名が出てきたら `people` / `note_people` につなぐ（感謝の相手も） |
 
-## reflections
-
-ジャーナルの各項目を、1行（1つの事柄）ずつ1レコードにする。
-
-| ジャーナルの見出し | `kind` |
-|---|---|
-| 今日のハイライト | `highlight` |
-| 考えたこと | `thought` |
-| 感謝 | `gratitude`（相手は `reflection_people` にもつなぐ） |
-| 静かな良いこと | `quiet_good` |
-| できたこと | `went_well` |
-| うまくいかなかったこと | `went_badly` |
-| 繰り越したタスクと理由 | `carried_over`（理由は `reason` に） |
-| 自分の行動を振り返って得た教訓（次に活かすこと） | `lesson`（本や番組に関わるなら `media_id` もつなぐ） |
-| キャッチアップ | `catch_up` |
-| 今日の音楽 | `music` |
-
-- 「気づき・学び」は `reflections` ではなく `learnings` に入れる
-- 「今日のワークアウト」は `workouts` に入れる
-- `sort_order` には、同じ日・同じ `kind` の中での並び順を入れる
+- 「今日のワークアウト」は `notes` ではなく `workouts` に入れる
 
 ## habits
 
@@ -112,7 +104,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 - 本は `book`、Audible は `audiobook`、ポッドキャストは番組単位で `podcast`、教材・研修は `course`。エピソードは `media` にせず、`time_logs.content` に書く
 - `status` は `planned`／`in_progress`／`finished`／`dropped`。読み終えたら `finished_on` も入れる
 - `~/.secretary/読書リスト/` に読書メモがある本は `note_path` にメモのパスを入れる
-- 本や番組から得た学びは、`learnings.media_id` でつなぐ
+- 本や番組から得た学びや教訓は、`notes.media_id` でつなぐ
 
 ## commitments
 
@@ -130,7 +122,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 例外として、`sleep_logs`（起床・就寝）は凡事徹底の中心の項目なので `false`（公開）にする。
 
-感謝（`reflections` の `kind = 'gratitude'`）は、中身を必ず `true`（非公開）にする。件数だけは画面の「今日の感謝」でチームにも見せる。
+`note_categories.content_private = true` の大分類（今日の感謝）は、中身が必ず非公開になる（入れるときにトリガーで `is_private = true` にそろう）。件数だけはチームにも見せる。
 
 `days.is_private` は、その日の `mood` を隠すかどうか。私生活に触れていれば `true`。
 

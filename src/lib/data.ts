@@ -2,10 +2,6 @@ import "server-only";
 import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type LearningKind = "knowledge" | "insight" | "practice";
-export type ReflectionKind =
-  "highlight" | "thought" | "gratitude" | "quiet_good" | "went_well" | "went_badly" | "carried_over" | "lesson" | "catch_up" | "music";
-
 export type TimeBlock = {
   id: string;
   started_at: string;
@@ -17,24 +13,24 @@ export type TimeBlock = {
   is_private: boolean;
 };
 
-export type Learning = {
+export type NoteCategory = {
+  key: string;
+  label: string;
+  content_private: boolean;
+  show_kind_headings: boolean;
+  kinds: { id: string; label: string; show_when_empty: boolean }[];
+};
+
+export type Note = {
   id: string;
-  title: string;
-  insight: string;
-  kind: LearningKind;
+  kind_id: string;
+  title: string | null;
+  body: string;
   context: string | null;
+  reason: string | null;
   next_action: string | null;
   media: string | null;
   tags: string[];
-  is_private: boolean;
-};
-
-export type Reflection = {
-  id: string;
-  kind: ReflectionKind;
-  content: string;
-  reason: string | null;
-  media: string | null;
   is_private: boolean;
 };
 
@@ -57,14 +53,11 @@ export type DayData = {
   }[];
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
-  reflections: Reflection[];
-  learnings: Learning[];
-  // 感謝の件数は公開してよい（中身は非公開）ので、非公開の分も含めて数える
-  gratitudeCount: number;
-  // 振り返り（感謝以外）も件数は公開してよい
-  reflectionCounts: Partial<Record<ReflectionKind, number>>;
-  // 学びの種類ごとの件数（非公開の分も含む）
-  learningCounts: Record<LearningKind, number>;
+  // 画面に出す大分類（学び・振り返り・感謝 など）と、その日の記録
+  noteCategories: NoteCategory[];
+  notes: Note[];
+  // 小分類ごとの件数。件数は公開してよいので、非公開の記録も含めて数える
+  noteCounts: Record<string, number>;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -94,20 +87,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [
-    dayRow,
-    sleep,
-    nextSleep,
-    office,
-    workouts,
-    timeLogs,
-    workSessions,
-    reflections,
-    learnings,
-    gratitude,
-    reflectionKinds,
-    learningKinds,
-  ] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, categories, notes, noteKinds] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -130,24 +110,19 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .in("is_private", privacy)
       .order("started_at"),
     db
-      .from("reflections")
-      .select("id, kind, content, reason, is_private, media(title)")
-      .eq("day", day)
-      .in("is_private", privacy)
-      .order("kind")
+      .from("note_categories")
+      .select("key, label, content_private, show_kind_headings, note_kinds(id, label, show_when_empty, sort_order)")
+      .eq("show_on_page", true)
       .order("sort_order"),
     db
-      .from("learnings")
-      .select("id, title, insight, kind, context, next_action, is_private, media(title), learning_tags(tags(name))")
+      .from("notes")
+      .select("id, kind_id, title, body, context, reason, next_action, is_private, created_at, media(title), note_tags(tags(name))")
       .eq("day", day)
       .in("is_private", privacy)
       .order("created_at"),
-    db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).eq("kind", "gratitude"),
-    // 件数を出すためだけに種類を読む（中身は読まない）
-    db.from("reflections").select("kind").eq("day", day).neq("kind", "gratitude"),
-    db.from("learnings").select("kind").eq("day", day),
+    // 件数を出すためだけに小分類を読む（中身は読まない）
+    db.from("notes").select("kind_id").eq("day", day),
   ]);
-  if (gratitude.error) throw new Error(gratitude.error.message);
 
   const d = check(dayRow);
   const name = (v: unknown) => (v as { name: string } | null)?.name ?? null;
@@ -180,29 +155,31 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       detail: w.subject,
       is_private: w.is_private,
     })),
-    reflections: (check(reflections) ?? []).map((r) => ({ ...r, kind: r.kind as ReflectionKind, media: title(r.media) })),
-    learnings: (check(learnings) ?? []).map((l) => ({
-      id: l.id,
-      title: l.title,
-      insight: l.insight,
-      kind: l.kind as LearningKind,
-      context: l.context,
-      next_action: l.next_action,
-      media: title(l.media),
-      tags: (l.learning_tags as unknown as { tags: { name: string } | null }[]).flatMap((lt) => (lt.tags ? [lt.tags.name] : [])),
-      is_private: l.is_private,
+    noteCategories: (check(categories) ?? []).map((c) => ({
+      key: c.key,
+      label: c.label,
+      content_private: c.content_private,
+      show_kind_headings: c.show_kind_headings,
+      kinds: [...c.note_kinds]
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map(({ id, label, show_when_empty }) => ({ id, label, show_when_empty })),
     })),
-    gratitudeCount: gratitude.count ?? 0,
-    reflectionCounts: (check(reflectionKinds) ?? []).reduce<Partial<Record<ReflectionKind, number>>>(
-      (acc, r) => ({ ...acc, [r.kind]: (acc[r.kind as ReflectionKind] ?? 0) + 1 }),
+    notes: (check(notes) ?? []).map((n) => ({
+      id: n.id,
+      kind_id: n.kind_id,
+      title: n.title,
+      body: n.body,
+      context: n.context,
+      reason: n.reason,
+      next_action: n.next_action,
+      media: title(n.media),
+      tags: (n.note_tags as unknown as { tags: { name: string } | null }[]).flatMap((t) => (t.tags ? [t.tags.name] : [])),
+      is_private: n.is_private,
+    })),
+    noteCounts: (check(noteKinds) ?? []).reduce<Record<string, number>>(
+      (acc, n) => ({ ...acc, [n.kind_id]: (acc[n.kind_id] ?? 0) + 1 }),
       {},
     ),
-    learningCounts: (check(learningKinds) ?? []).reduce((acc, l) => ({ ...acc, [l.kind]: acc[l.kind as LearningKind] + 1 }), {
-      knowledge: 0,
-      insight: 0,
-      practice: 0,
-      reflection: 0,
-    } as Record<LearningKind, number>),
   };
 }
 
