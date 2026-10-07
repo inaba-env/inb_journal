@@ -91,5 +91,6 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
   | `seniority` | `senior` 先輩／`peer` 同期／`junior` 後輩 | 会社の人のときだけ |
   | `is_teammate` | true / false | 自分と同じチーム（システムチーム）か。会社の人のときだけ |
 
+- システムチームのメンバーは `~/.secretary/会社/チーム/メンバー一覧.md`（朝礼メンバー）を正とする。ここに載っている人は `is_teammate = true`、載っていない会社の人は `false`。`seniority` は入社年度を本人（23卒）と比べて決める
 - `people.relation` には分類より細かい関係や役割を入れる（祖母、上司、システムチームのリーダー など）
 - `tags.name` は日本語か、技術名なら原表記
