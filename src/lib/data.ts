@@ -221,25 +221,22 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   };
 }
 
-// 凡事徹底のチェックリスト（その日に続けている項目と、その日のチェック）
+// 凡事徹底のチェックリスト（その日に続けている項目と、その日の達成）
+// 達成は habit_days から読む（手のチェックに加え、activity_types の運動を記録した日も達成になる）
 export async function loadChecklist(day: string, includePrivate: boolean): Promise<ChecklistItem[]> {
   await connection();
   const db = createAdminClient();
-  const items =
-    check(
-      await db
-        .from("habits")
-        .select("id, name, habit_checks(day, done)")
-        .eq("in_checklist", true)
-        .in("is_private", includePrivate ? [true, false] : [false])
-        .lte("start_on", day)
-        .or(`end_on.is.null,end_on.gte.${day}`)
-        .eq("habit_checks.day", day)
-        .order("sort_order"),
-    ) ?? [];
-  return items.map((h) => ({
-    id: h.id,
-    name: h.name,
-    done: (h.habit_checks as { day: string; done: boolean }[]).some((c) => c.done),
-  }));
+  const [items, done] = await Promise.all([
+    db
+      .from("habits")
+      .select("id, name")
+      .eq("in_checklist", true)
+      .in("is_private", includePrivate ? [true, false] : [false])
+      .lte("start_on", day)
+      .or(`end_on.is.null,end_on.gte.${day}`)
+      .order("sort_order"),
+    db.from("habit_days").select("habit_id").eq("day", day).eq("done", true),
+  ]);
+  const doneIds = new Set((check(done) ?? []).map((d) => d.habit_id));
+  return (check(items) ?? []).map((h) => ({ id: h.id, name: h.name, done: doneIds.has(h.id) }));
 }
