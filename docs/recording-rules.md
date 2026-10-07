@@ -70,7 +70,8 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 
 ## activities / runs / workouts
 
-- 1回の運動につき `activities` に1行入れる（`day`・`type`・時刻・`duration_min`・`note`・`is_private`）。種類ごとの中身は子テーブルに入れる
+- 1回の運動につき `activities` に1行入れる（`day`・`type`・時刻・`duration_min`・`avg_heart_rate`・`calories`・`note`・`is_private`）。種類ごとの中身は子テーブルに入れる
+- Garmin のスクショなどで平均心拍・消費カロリーが分かれば `avg_heart_rate`（bpm）・`calories`（kcal）に入れ、`note` には書かない。ペースは開始・終了時刻と距離から画面で出すので入れない
   - ラン（`type = run`）：`runs` に1行（`activity_id`、`distance_km`）
   - 筋トレ（`type = strength`）：`workouts` に種目ごとに1行（`activity_id`、`sort_order`、`exercise`、`sets`、`reps`、`weight_kg`、`note`）。「腕立て10回×3セット、チューブ3セット」なら2行。分からない数は null
   - ウォーク・ストレッチなどは `activities` だけでよい

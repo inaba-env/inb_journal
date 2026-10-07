@@ -35,6 +35,19 @@ function exerciseCount(n: number): string | null {
   return n > 0 ? `${n}種目` : null;
 }
 
+// 6:37/km・130bpm・652kcal（ペースは開始・終了時刻と距離から出す）
+function activityStats(a: DayData["activities"][number]): string {
+  const sec = a.started_at && a.ended_at ? (Date.parse(a.ended_at) - Date.parse(a.started_at)) / 1000 : null;
+  const pace = sec && a.distance_km ? Math.floor(sec / a.distance_km) : null;
+  return [
+    pace != null && `${Math.floor(pace / 60)}:${String(pace % 60).padStart(2, "0")}/km`,
+    a.avg_heart_rate != null && `${a.avg_heart_rate}bpm`,
+    a.calories != null && `${a.calories}kcal`,
+  ]
+    .filter(Boolean)
+    .join("・");
+}
+
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
@@ -230,6 +243,7 @@ export function DayView({ data }: { data: DayData }) {
                         ))}
                       </ul>
                     )}
+                    {activityStats(w) && <p className="-mt-1 text-sm tabular-nums text-zinc-500">{activityStats(w)}</p>}
                     {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
                   </Card>
                 ))}
