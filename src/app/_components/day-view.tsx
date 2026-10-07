@@ -76,8 +76,9 @@ export function DayView({ data }: { data: DayData }) {
           items={[
             { label: "起床", value: data.sleep ? formatTime(data.sleep.wake_at) : "—" },
             { label: "就寝", value: data.bedTonight ? formatTime(data.bedTonight) : "—" },
+            { label: "睡眠時間", value: data.sleep?.duration_min != null ? formatDuration(data.sleep.duration_min) : "—" },
           ]}
-          sub={data.sleep?.duration_min != null ? `前夜の睡眠 ${formatDuration(data.sleep.duration_min)}` : undefined}
+          sub={data.sleep?.bed_at ? `前夜 ${formatTime(data.sleep.bed_at)} に就寝` : undefined}
         />
         <PairStat
           label="オフィス"
