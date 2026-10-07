@@ -34,29 +34,49 @@ const RESULT: Record<string, { label: string; className: string }> = {
 };
 
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
-  const nav = "rounded-md border border-zinc-200 px-2.5 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900";
   return (
     <header className="flex flex-wrap items-center justify-between gap-3">
       <div>
         <h1 className="text-xl font-semibold sm:text-2xl">{formatDate(day)}</h1>
         {mood && <p className="text-sm text-zinc-500">気分：{mood}</p>}
       </div>
-      <nav className="flex gap-1.5">
-        <Link className={nav} href={`/days/${addDays(day, -1)}`} aria-label="前の日">
-          ←
-        </Link>
-        {day !== today && (
-          <Link className={nav} href="/">
-            今日
-          </Link>
-        )}
-        {day < today && (
-          <Link className={nav} href={`/days/${addDays(day, 1)}`} aria-label="次の日">
-            →
-          </Link>
-        )}
+      <nav className="flex items-center gap-1.5">
+        <NavButton href={`/days/${addDays(day, -1)}`} label="前の日">
+          <Chevron direction="left" />
+        </NavButton>
+        <NavButton href={day !== today ? "/" : undefined} label="今日">
+          今日
+        </NavButton>
+        <NavButton href={day < today ? `/days/${addDays(day, 1)}` : undefined} label="次の日">
+          <Chevron direction="right" />
+        </NavButton>
       </nav>
     </header>
+  );
+}
+
+// 使えないときも消さずに薄く出し、ボタンの位置が日によって変わらないようにする
+function NavButton({ href, label, children }: { href?: string; label: string; children: React.ReactNode }) {
+  const base = "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm";
+  if (!href) {
+    return (
+      <span aria-label={label} aria-disabled className={`${base} border-zinc-100 text-zinc-300 dark:border-zinc-900 dark:text-zinc-700`}>
+        {children}
+      </span>
+    );
+  }
+  return (
+    <Link href={href} aria-label={label} className={`${base} border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900`}>
+      {children}
+    </Link>
+  );
+}
+
+function Chevron({ direction }: { direction: "left" | "right" }) {
+  return (
+    <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d={direction === "left" ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} />
+    </svg>
   );
 }
 
