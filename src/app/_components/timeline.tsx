@@ -12,21 +12,21 @@ const HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 export function Timeline({
   day,
   timeLogs,
-  workouts,
+  activities,
   workSessions,
   github,
   markers,
 }: {
   day: string;
   timeLogs: TimeBlock[];
-  workouts: TimeBlock[];
+  activities: TimeBlock[];
   workSessions: TimeBlock[];
   github: GithubActivity[];
   markers: Marker[];
 }) {
   const lanes = [
     { title: "学習", placed: stack(timeLogs, day), color: timeColor },
-    { title: "運動", placed: stack(workouts, day), color: () => "bg-emerald-500" },
+    { title: "運動", placed: stack(activities, day), color: () => "bg-emerald-500" },
     { title: "Claude Code", placed: stack(workSessions, day), color: workColor },
   ].map((lane) => ({ ...lane, height: Math.max(1, ...lane.placed.map((p) => p.row + 1)) * ROW_PX + 8 }));
   const githubHeight = ROW_PX + 8;

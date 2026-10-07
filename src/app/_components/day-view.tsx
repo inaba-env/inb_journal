@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { DayData } from "@/lib/data";
+import type { DayData, Exercise } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
@@ -14,13 +14,21 @@ function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
   for (const item of items) map.set(key(item), [...(map.get(key(item)) ?? []), item]);
   return [...map.entries()];
 }
-const WORKOUT_LABEL: Record<string, string> = {
+const ACTIVITY_LABEL: Record<string, string> = {
   run: "ラン",
   walk: "ウォーク",
   strength: "筋トレ",
   stretch: "ストレッチ",
   other: "運動",
 };
+
+// 腕立て 10回×3セット / チューブ 3セット / ベンチプレス 40kg 8回×3セット
+function formatExercise(e: Exercise): string {
+  const load = [e.weight_kg != null && `${e.weight_kg}kg`, e.reps != null && `${e.reps}回`].filter(Boolean).join(" ");
+  const sets = e.sets != null ? `${e.sets}セット` : "";
+  const amount = load && sets ? `${load}×${sets}` : load || sets;
+  return [e.exercise, amount, e.note && `（${e.note}）`].filter(Boolean).join(" ");
+}
 
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
   return (
@@ -139,7 +147,7 @@ export function DayView({ data }: { data: DayData }) {
         <Timeline
           day={data.day}
           timeLogs={data.timeLogs}
-          workouts={data.workouts.flatMap((w) =>
+          activities={data.activities.flatMap((w) =>
             w.started_at && w.ended_at
               ? [
                   {
@@ -147,8 +155,11 @@ export function DayView({ data }: { data: DayData }) {
                     started_at: w.started_at,
                     ended_at: w.ended_at,
                     duration_min: Math.round((Date.parse(w.ended_at) - Date.parse(w.started_at)) / 60000),
-                    category: WORKOUT_LABEL[w.type] ?? w.type,
-                    label: w.distance_km != null ? `${w.distance_km}km` : null,
+                    category: ACTIVITY_LABEL[w.type] ?? w.type,
+                    label:
+                      w.distance_km != null
+                        ? `${w.distance_km}km`
+                        : w.exercises.map((e) => e.exercise).join("・") || null,
                     detail: w.note,
                     is_private: w.is_private,
                   },
@@ -183,19 +194,19 @@ export function DayView({ data }: { data: DayData }) {
               </CardStack>
             )}
           </Section>
-          <Section title="運動" count={data.workouts.length}>
-            {data.workouts.length === 0 ? (
+          <Section title="運動" count={data.activities.length}>
+            {data.activities.length === 0 ? (
               <Card>
                 <Empty />
               </Card>
             ) : (
               <CardStack>
-                {data.workouts.map((w) => (
+                {data.activities.map((w) => (
                   <Card
                     key={w.id}
                     title={
                       <>
-                        {WORKOUT_LABEL[w.type] ?? w.type}
+                        {ACTIVITY_LABEL[w.type] ?? w.type}
                         <PrivateMark show={w.is_private} />
                       </>
                     }
@@ -203,6 +214,13 @@ export function DayView({ data }: { data: DayData }) {
                       .filter(Boolean)
                       .join("・")}
                   >
+                    {w.exercises.length > 0 && (
+                      <ul className="-mt-1 space-y-0.5 text-sm text-zinc-700 dark:text-zinc-300">
+                        {w.exercises.map((e, i) => (
+                          <li key={i}>{formatExercise(e)}</li>
+                        ))}
+                      </ul>
+                    )}
                     {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
                   </Card>
                 ))}

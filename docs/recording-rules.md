@@ -19,7 +19,7 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 | 学び・振り返り・感謝・音楽など、その日に書き留めたこと | `notes`（下の「notes」参照） |
 | 「明日に向けて」などの約束。翌日以降の Check / Act | `commitments` |
 | 寝た・起きた時刻 | `sleep_logs`（`day` は起きた日） |
-| ラン・筋トレなどの運動 | `workouts` |
+| ラン・筋トレなどの運動 | `activities`（ランの距離は `runs`、筋トレの種目は `workouts`。下の「activities」参照） |
 | 「〇月は毎日〇〇する」という期間つきの目標 | `habits` |
 | その目標を実施したか | `habit_checks`（運動の習慣は不要。下の「habits」参照） |
 | オフィスに着いた・出た時刻 | `office_logs` |
@@ -60,16 +60,23 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 | タグ | `tags` / `note_tags`。学びには2〜4個付ける。既存のタグがあればそれを使い、表記を増やさない |
 | 人 | 人名が出てきたら `people` / `note_people` につなぐ（感謝の相手も） |
 
-- 「今日のワークアウト」は `notes` ではなく `workouts` に入れる
+- 「今日のワークアウト」は `notes` ではなく `activities` / `workouts` に入れる
 
 ## habits
 
-- `workout_types` が入っている習慣（例：毎日なにかしら運動する＝`{run,strength}`）は、`workouts` に記録すれば自動で達成になる。`habit_checks` には書かない
+- `activity_types` が入っている習慣（例：毎日なにかしら運動する＝`{run,strength}`）は、`activities` に記録すれば自動で達成になる。`habit_checks` には書かない
 - それ以外の習慣は、実施した日に `habit_checks` を入れる
 - 達成状況はビュー `habit_days`（習慣×日付の `done`）で見る
 
-## workouts
+## activities / runs / workouts
 
+- 1回の運動につき `activities` に1行入れる（`day`・`type`・時刻・`duration_min`・`note`・`is_private`）。種類ごとの中身は子テーブルに入れる
+  - ラン（`type = run`）：`runs` に1行（`activity_id`、`distance_km`）
+  - 筋トレ（`type = strength`）：`workouts` に種目ごとに1行（`activity_id`、`sort_order`、`exercise`、`sets`、`reps`、`weight_kg`、`note`）。「腕立て10回×3セット、チューブ3セット」なら2行。分からない数は null
+  - ウォーク・ストレッチなどは `activities` だけでよい
+- 子テーブルは `(activity_id, type)` で親につながるので、種類の違う運動にはつなげられない。親を消すと子も消える
+- 種目名は既存の `workouts.exercise` の表記に合わせる（腕立て、チューブ など）
+- プロテインを飲んだなど、種目以外のことは `activities.note` に書く
 - 開始・終了時刻（`started_at` / `ended_at`）が分かれば入れる。タイムラインの「運動」の段に出る。「3時から30分走った」のように長さだけ分かるときは、`ended_at` を開始＋長さで入れる
 - 時刻が分からなければ null のままでよい（運動の欄には出るが、タイムラインには出ない）
 
