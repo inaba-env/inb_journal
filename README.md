@@ -27,6 +27,7 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | テーブル | 中身 |
 |---|---|
 | `notes` | その日に書き留めたこと（学び・振り返り・感謝・音楽）。大分類 `note_categories`・小分類 `note_kinds` で分け、画面はこの分け方どおりにセクション・小見出し・カードで出す |
+| `links` | その日に参照したリンク・残しておきたいリンク。画面では「振り返り」の下に出す |
 | `sleep_logs` | 睡眠。`day` は起きた日。`duration_min` は自動計算 |
 | `habits` / `habit_checks` | 凡事徹底のチェックリストの項目（`in_checklist`）と、日ごとのチェック |
 | `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |

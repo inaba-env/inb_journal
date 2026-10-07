@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Fragment } from "react";
 import type { ChecklistItem, DayData, Exercise } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { GithubSection } from "./github";
+import { LinksSection } from "./links";
 import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
 import { Bonji } from "./bonji";
@@ -297,9 +299,14 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
         <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
+          {/* リンクは振り返りの直下に出す */}
           {others.map((c) => (
-            <NotesSection key={c.key} category={c} notes={data.notes} counts={data.noteCounts} />
+            <Fragment key={c.key}>
+              <NotesSection category={c} notes={data.notes} counts={data.noteCounts} />
+              {c.key === "reflection" && <LinksSection links={data.links} count={data.linkCount} />}
+            </Fragment>
           ))}
+          {!others.some((c) => c.key === "reflection") && <LinksSection links={data.links} count={data.linkCount} />}
         </div>
       </div>
     </div>
