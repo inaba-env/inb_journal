@@ -53,3 +53,29 @@ export function Section({ title, aside, children }: { title: string; aside?: Rea
     </section>
   );
 }
+
+// 2つの時刻を1枚に並べるカード（起床・就寝、出社・退社）
+export function PairStat({
+  label,
+  items,
+  sub,
+}: {
+  label: string;
+  items: { label: string; value: React.ReactNode }[];
+  sub?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
+      <span className="text-xs text-zinc-500">{label}</span>
+      <div className="flex gap-6">
+        {items.map((item) => (
+          <div key={item.label} className="flex flex-col">
+            <span className="text-[11px] text-zinc-500">{item.label}</span>
+            <span className="text-lg font-semibold tabular-nums">{item.value}</span>
+          </div>
+        ))}
+      </div>
+      {sub && <span className="text-xs text-zinc-500">{sub}</span>}
+    </div>
+  );
+}

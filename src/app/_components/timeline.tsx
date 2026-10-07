@@ -99,8 +99,8 @@ function Lane({
           >
             <span
               className={
-                "pointer-events-none invisible absolute bottom-full z-20 mb-1.5 w-64 rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:visible group-focus:visible dark:bg-zinc-100 dark:text-zinc-900 " +
-                (start > 1440 * 0.6 ? "right-0" : "left-0")
+                "pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+                (start > 1440 * 0.65 ? "right-0" : start < 1440 * 0.35 ? "left-0" : "left-1/2 -translate-x-1/2")
               }
             >
               <span className="block tabular-nums opacity-70">

@@ -4,7 +4,7 @@ import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
-import { Card, PrivateMark, Section, Stat } from "./ui";
+import { Card, PairStat, PrivateMark, Section, Stat } from "./ui";
 
 const REFLECTION_LABEL: Record<ReflectionKind, string> = {
   highlight: "ハイライト",
@@ -70,28 +70,22 @@ export function DayView({ data }: { data: DayData }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-        <Stat
-          label="起床"
-          value={data.sleep ? formatTime(data.sleep.wake_at) : "—"}
-          sub={
-            data.sleep?.bed_at && data.sleep.duration_min !== null
-              ? `就寝 ${formatTime(data.sleep.bed_at)}・${formatDuration(data.sleep.duration_min)}`
-              : undefined
-          }
+      <div className="grid gap-2 sm:grid-cols-3">
+        <PairStat
+          label="睡眠"
+          items={[
+            { label: "起床", value: data.sleep ? formatTime(data.sleep.wake_at) : "—" },
+            { label: "就寝", value: data.bedTonight ? formatTime(data.bedTonight) : "—" },
+          ]}
+          sub={data.sleep?.duration_min != null ? `前夜の睡眠 ${formatDuration(data.sleep.duration_min)}` : undefined}
         />
-        <Stat
+        <PairStat
           label="オフィス"
-          value={data.office?.arrived_at ? formatTime(data.office.arrived_at) : "—"}
-          sub={data.office?.left_at ? `退社 ${formatTime(data.office.left_at)}` : data.office?.note ?? undefined}
-        />
-        <Stat
-          label="運動"
-          value={data.workouts.length ? data.workouts.map((w) => WORKOUT_LABEL[w.type] ?? w.type).join("・") : "—"}
-          sub={data.workouts
-            .map((w) => [w.distance_km && `${w.distance_km}km`, w.duration_min && formatDuration(w.duration_min)].filter(Boolean).join(" "))
-            .filter(Boolean)
-            .join("・") || undefined}
+          items={[
+            { label: "出社", value: data.office?.arrived_at ? formatTime(data.office.arrived_at) : "—" },
+            { label: "退社", value: data.office?.left_at ? formatTime(data.office.left_at) : "—" },
+          ]}
+          sub={data.office?.stay_min != null ? `滞在 ${formatDuration(data.office.stay_min)}` : data.office?.note ?? undefined}
         />
         <Stat label="学習" value={studyMin ? formatDuration(studyMin) : "—"} sub={data.timeLogs.length ? `${data.timeLogs.length}件` : undefined} />
       </div>
@@ -114,6 +108,28 @@ export function DayView({ data }: { data: DayData }) {
                   aside={formatDuration(blocks.reduce((s, b) => s + b.duration_min, 0))}
                 >
                   <BlockList blocks={blocks} color={timeColor} hideCategory />
+                </Card>
+              ))
+            )}
+          </Section>
+          <Section title="運動">
+            {data.workouts.length === 0 ? (
+              <p className="px-1 text-sm text-zinc-500">記録なし</p>
+            ) : (
+              data.workouts.map((w) => (
+                <Card
+                  key={w.id}
+                  title={
+                    <>
+                      {WORKOUT_LABEL[w.type] ?? w.type}
+                      <PrivateMark show={w.is_private} />
+                    </>
+                  }
+                  aside={[w.distance_km != null && `${w.distance_km}km`, w.duration_min != null && formatDuration(w.duration_min)]
+                    .filter(Boolean)
+                    .join("・")}
+                >
+                  {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
                 </Card>
               ))
             )}

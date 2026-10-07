@@ -58,6 +58,8 @@ export type DayData = {
   day: string;
   mood: string | null;
   sleep: { bed_at: string | null; wake_at: string; duration_min: number | null; is_private: boolean } | null;
+  // その日の夜に寝た時刻（翌日の睡眠の記録の bed_at）
+  bedTonight: string | null;
   office: { arrived_at: string | null; left_at: string | null; stay_min: number | null; note: string | null } | null;
   workouts: { id: string; type: string; distance_km: number | null; duration_min: number | null; note: string | null; is_private: boolean }[];
   timeLogs: TimeBlock[];
@@ -105,10 +107,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, office, workouts, timeLogs, workSessions, reflections, learnings, made, reviewed] =
+  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, reflections, learnings, made, reviewed] =
     await Promise.all([
       db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
       db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
+      db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
       db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
       db.from("workouts").select("id, type, distance_km, duration_min, note, is_private").eq("day", day).in("is_private", privacy),
       db
@@ -158,6 +161,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     day,
     mood: d && (includePrivate || !d.is_private) ? d.mood : null,
     sleep: check(sleep),
+    bedTonight: check(nextSleep)?.bed_at ?? null,
     office: check(office),
     workouts: check(workouts) ?? [],
     timeLogs: (check(timeLogs) ?? []).map((t) => ({
