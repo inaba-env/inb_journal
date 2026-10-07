@@ -27,3 +27,16 @@ export function Stat({ label, value, sub }: { label: string; value: React.ReactN
     </div>
   );
 }
+
+// カードを並べる見出し付きのまとまり（中身は呼び出し側のカード）
+export function Section({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2 px-1">
+        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</h2>
+        {aside && <span className="text-xs text-zinc-500">{aside}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}

@@ -4,7 +4,7 @@ import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor, workColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
-import { Card, PrivateMark, Stat } from "./ui";
+import { Card, PrivateMark, Section, Stat } from "./ui";
 
 const REFLECTION_LABEL: Record<ReflectionKind, string> = {
   highlight: "ハイライト",
@@ -55,7 +55,6 @@ export function DayHeader({ day, today, mood }: { day: string; today: string; mo
 
 export function DayView({ data }: { data: DayData }) {
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
-  const workMin = data.workSessions.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
     ...(data.office?.arrived_at ? [{ at: data.office.arrived_at, label: "オフィス着" }] : []),
@@ -99,7 +98,7 @@ export function DayView({ data }: { data: DayData }) {
           <Card title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             <BlockList blocks={data.timeLogs} color={timeColor} />
           </Card>
-          <Card title="Claude Code の作業" aside={workMin ? formatDuration(workMin) : undefined}>
+          <Card title="Claude Code の作業">
             <BlockList blocks={data.workSessions} color={workColor} />
           </Card>
         </div>
@@ -110,10 +109,10 @@ export function DayView({ data }: { data: DayData }) {
             </Card>
           )}
           {data.learnings.length > 0 && (
-            <Card title="学び" aside={`${data.learnings.length}件`}>
-              <ul className="flex flex-col gap-3">
+            <Section title="学び" aside={`${data.learnings.length}件`}>
+              <ul className="flex flex-col gap-2">
                 {data.learnings.map((l) => (
-                  <li key={l.id} className="flex flex-col gap-0.5">
+                  <li key={l.id} className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
                     <p className="text-xs text-zinc-500">
                       {KIND_LABEL[l.kind]}
                       {l.media && `・${l.media}`}
@@ -126,7 +125,7 @@ export function DayView({ data }: { data: DayData }) {
                     <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
                     {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
                     {l.tags.length > 0 && (
-                      <p className="flex flex-wrap gap-1 pt-0.5">
+                      <p className="flex flex-wrap gap-1 pt-1">
                         {l.tags.map((t) => (
                           <span key={t} className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
                             {t}
@@ -137,7 +136,7 @@ export function DayView({ data }: { data: DayData }) {
                   </li>
                 ))}
               </ul>
-            </Card>
+            </Section>
           )}
           {data.reflections.length > 0 && (
             <Card title="振り返り">
