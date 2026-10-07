@@ -26,6 +26,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 | オフィスに着いた・出た時刻 | `office_logs` |
 | Claude Code での作業（時刻レンジ付き） | `work_sessions`（自動。下の「work_sessions」参照） |
 | 学習・自己投資の時間（読書、開発、ジャーナリング など） | `time_logs` |
+| 読んだ・聞いたもの（本、Audible、ポッドキャスト、教材） | `media` |
 | 体重・歩数など数値で測るもの | `metrics` / `metric_logs` |
 | 気分 | `days.mood` |
 
@@ -43,6 +44,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 | `context` | どの場面で得たか（朝礼、案件対応中、読書 など）。分からなければ null |
 | `next_action` | 次にどう活かすか。**入力に書いてあるときだけ** |
 | `project_id` | 特定の案件に関わるときだけ `projects` につなぐ |
+| `media_id` | 本・番組から得た学びのとき `media` につなぐ |
 | タグ | `tags` / `learning_tags` で2〜4個。既存のタグがあればそれを使い、表記を増やさない |
 | 人 | 人名が出てきたら `people` / `learning_people` につなぐ |
 
@@ -87,9 +89,18 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 ## time_logs
 
 - 「4時から5時まで読書」のような時間の記録を1件1行で入れる。もとは凡事徹底スプシの【時間】シート（2026年1〜10月分は取り込み済み、`source` が `凡事徹底スプシ/…`）
-- カテゴリは `time_categories` から選ぶ（開発／書籍・ポッドキャスト／その他インプット／その他アウトプット／ジャーナリング／業務）。当てはまらなければ、勝手に足さずに確認する
+- カテゴリは `time_categories` の `is_active = true` のものから選ぶ（開発／読書／Audible／ポッドキャスト／その他インプット／その他アウトプット／ジャーナリング／業務）。当てはまらなければ、勝手に足さずに確認する
+- 「書籍・ポッドキャスト」は2026年10月までの過去の記録用。新しい記録には使わない
+- 読書・Audible・ポッドキャストのときは `media_id` で何を読んだ・聞いたかをつなぎ、`content` には章やエピソード名を書く
 - 書名や技術名など「何をしたか」は `content`、寝落ち などの補足は `note`
 - 日をまたぐとき（23:00〜0:30）は `ended_at` を翌日の時刻にする。`day` は始めた日
+
+## media
+
+- 本は `book`、Audible は `audiobook`、ポッドキャストは番組単位で `podcast`、教材・研修は `course`。エピソードは `media` にせず、`time_logs.content` に書く
+- `status` は `planned`／`in_progress`／`finished`／`dropped`。読み終えたら `finished_on` も入れる
+- `~/.secretary/読書リスト/` に読書メモがある本は `note_path` にメモのパスを入れる
+- 本や番組から得た学びは、`learnings.media_id` でつなぐ
 
 ## commitments
 
