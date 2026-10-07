@@ -37,7 +37,7 @@ export type Note = {
 export type DayData = {
   day: string;
   mood: string | null;
-  sleep: { bed_at: string | null; wake_at: string; duration_min: number | null; is_private: boolean } | null;
+  sleep: { bed_at: string | null; wake_at: string | null; duration_min: number | null; is_private: boolean } | null;
   // その日の夜に寝た時刻（翌日の睡眠の記録の bed_at）
   bedTonight: string | null;
   office: { arrived_at: string | null; left_at: string | null; stay_min: number | null; note: string | null } | null;

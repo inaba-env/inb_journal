@@ -87,7 +87,7 @@ export function DayView({ data }: { data: DayData }) {
   const others = data.noteCategories.filter((c) => c.key !== "learning");
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
-    ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
+    ...(data.sleep?.wake_at ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
     ...(data.office?.arrived_at ? [{ at: data.office.arrived_at, label: "オフィス着" }] : []),
     ...(data.office?.left_at ? [{ at: data.office.left_at, label: "オフィス発" }] : []),
   ];
@@ -100,7 +100,7 @@ export function DayView({ data }: { data: DayData }) {
           items={[
             {
               label: "起床",
-              value: data.sleep ? formatTime(data.sleep.wake_at) : "—",
+              value: data.sleep?.wake_at ? formatTime(data.sleep.wake_at) : "—",
             },
             {
               label: "就寝",
