@@ -12,11 +12,11 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | 閲覧者 | 条件 | 見えるもの |
 |---|---|---|
 | システムチーム | `ALLOWED_IPS` に入っている IP から来た | `is_private = false` の記録だけ |
-| 本人 | `OWNER_EMAIL`（カンマ区切りで複数可）のどれかでログインしている（どこからでも） | すべて（非公開の記録には「非公開」と付く） |
+| 本人 | `OWNER_EMAIL` でログインしている（どこからでも） | すべて（非公開の記録には「非公開」と付く） |
 | それ以外 | — | `/login` に飛ばされる |
 
 - 判定は `src/proxy.ts`（入口）と `src/lib/access.ts` の `resolveViewer`（ページ側）の2か所で行う。proxy だけに頼らない
-- 本人確認は Supabase Auth のメールリンク。`shouldCreateUser: false` なので、`OWNER_EMAIL` に書いたアドレスごとに Supabase 側でユーザーを先に作っておく（Authentication → Users → Add user）
+- 本人確認は Supabase Auth のメールリンク。`shouldCreateUser: false` なので、本人のユーザーを Supabase 側に先に作っておく
 - IP は `x-real-ip` / `x-forwarded-for` から取る。Vercel はこれを自分で上書きするので信用できるが、ほかの環境に置くときは前段のプロキシがヘッダーを上書きするか確認すること
 
 ## データ

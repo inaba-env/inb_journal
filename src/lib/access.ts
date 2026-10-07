@@ -45,21 +45,12 @@ export function isAllowedIp(ip: string | null): boolean {
   return rules.some((rule) => matches(ip, rule));
 }
 
-// OWNER_EMAIL はカンマ区切りで複数書ける（携帯用と会社用など）
-export function isOwnerEmail(email: unknown): email is string {
-  if (typeof email !== "string") return false;
-  const owners = (process.env.OWNER_EMAIL ?? "")
-    .split(",")
-    .map((e) => e.trim().toLowerCase())
-    .filter(Boolean);
-  return owners.includes(email.trim().toLowerCase());
-}
-
 export async function ownerEmail(): Promise<string | null> {
   const supabase = await createAuthClient();
   const { data } = await supabase.auth.getClaims();
   const email = data?.claims?.email;
-  return isOwnerEmail(email) ? email : null;
+  if (typeof email !== "string") return null;
+  return email.toLowerCase() === process.env.OWNER_EMAIL?.toLowerCase() ? email : null;
 }
 
 // ページ側の最終判定。proxy の判定だけに頼らない。
