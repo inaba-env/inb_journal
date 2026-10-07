@@ -82,5 +82,19 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 ## マスターの扱い
 
 - `projects.key` は英小文字とアンダースコア（例：`tsh_hamada`、`ai_ocr`）。同じ案件に別の key を作らない
-- `people.name` は記録での呼び方に揃える（例：宮田さん）。`relation` には「上司」「同僚」などを入れる
+- `people.name` は記録での呼び方に揃える（例：宮田さん）
+- `people.category` は次から選ぶ。記録から読み取れなければ null にし、推測で埋めない
+
+  | 値 | 分類 |
+  |---|---|
+  | `family` | 家族 |
+  | `boss` | 上司 |
+  | `senior` | 先輩 |
+  | `peer` | 同期 |
+  | `colleague` | 同僚・会社の人（上の3つに当たらない社内の人） |
+  | `junior` | 後輩 |
+  | `customer` | お客さん（顧客の担当者） |
+  | `other` | その他 |
+
+- `people.relation` には分類より細かい関係を入れる（祖母、システムチームのリーダー など）
 - `tags.name` は日本語か、技術名なら原表記
