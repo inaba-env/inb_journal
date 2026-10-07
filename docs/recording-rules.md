@@ -83,13 +83,13 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 - `projects.key` は英小文字とアンダースコア（例：`tsh_hamada`、`ai_ocr`）。同じ案件に別の key を作らない
 - `people.name` は記録での呼び方に揃える（例：宮田さん）
-- 人の分類は次の3つの列に分けて入れる。記録から読み取れなければ null（`is_boss` は false）にし、推測で埋めない
+- 人の分類は次の3つの列に分けて入れる。記録から読み取れなければ null にし、推測で埋めない
 
   | 列 | 値 | 意味 |
   |---|---|---|
   | `category` | `family` 家族／`company` 会社の人／`customer` お客さん／`other` その他 | どこの人か |
   | `seniority` | `senior` 先輩／`peer` 同期／`junior` 後輩 | 会社の人のときだけ |
-  | `is_boss` | true / false | 上司かどうか。会社の人のときだけ |
+  | `is_teammate` | true / false | 自分と同じチーム（システムチーム）か。会社の人のときだけ |
 
-- `people.relation` には分類より細かい関係を入れる（祖母、システムチームのリーダー など）
+- `people.relation` には分類より細かい関係や役割を入れる（祖母、上司、システムチームのリーダー など）
 - `tags.name` は日本語か、技術名なら原表記
