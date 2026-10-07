@@ -1,36 +1,51 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# inb_journal — 凡事徹底の記録を見るページ
 
-## Getting Started
+学び・睡眠・習慣・数値の記録を Supabase に貯め、それを見るためだけの Web ページ。
+書き込みは Claude Code から Supabase MCP で行い、Web 側には登録画面を持たない。
 
-First, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバー側から読む)──▶ Next.js ──▶ 閲覧者
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 誰が見られるか
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| 閲覧者 | 条件 | 見えるもの |
+|---|---|---|
+| システムチーム | `ALLOWED_IPS` に入っている IP から来た | `is_private = false` の記録だけ |
+| 本人 | `OWNER_EMAIL` でログインしている（どこからでも） | すべて（非公開の記録には「非公開」と付く） |
+| それ以外 | — | `/login` に飛ばされる |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- 判定は `src/proxy.ts`（入口）と `src/lib/access.ts` の `resolveViewer`（ページ側）の2か所で行う。proxy だけに頼らない
+- 本人確認は Supabase Auth のメールリンク。`shouldCreateUser: false` なので、本人のユーザーを Supabase 側に先に作っておく
+- IP は `x-real-ip` / `x-forwarded-for` から取る。Vercel はこれを自分で上書きするので信用できるが、ほかの環境に置くときは前段のプロキシがヘッダーを上書きするか確認すること
 
-## Learn More
+## データ
 
-To learn more about Next.js, take a look at the following resources:
+テーブルは `supabase/migrations/` を参照。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+| テーブル | 中身 |
+|---|---|
+| `learnings` | 学び（日付・タイトル・本文・タグ） |
+| `sleep_logs` | 睡眠。`sleep_date` は起きた日。`duration_min` は自動計算 |
+| `habits` / `habit_checks` | 期間つきの習慣目標と、日ごとの達成 |
+| `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- 各テーブルとも RLS を有効にし、`anon` / `authenticated` には権限を与えていない（Data API から直接は読めない）
+- Web が使う `service_role` には `SELECT` だけを与えている
+- 公開・非公開は `learnings` / `sleep_logs` / `habits` / `metrics` の `is_private` で決める。`habit_checks` と `metric_logs` は親に従う
 
-## Deploy on Vercel
+## ローカルで動かす
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+supabase start              # マイグレーションと supabase/seed.sql が入る
+cp .env.example .env.local  # 値は supabase status で確認して埋める
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+ローカルでは IP ヘッダーが付かないので、`curl -H "x-real-ip: <ALLOWED_IPS の1つ>"` で確認する。
+
+## 本番
+
+- Supabase：本番プロジェクトに `supabase link` → `supabase db push`
+- Vercel：環境変数に `.env.example` の5つを設定する（`SUPABASE_SECRET_KEY` には `NEXT_PUBLIC_` を付けない）
+- Supabase Auth：Site URL と Redirect URL に本番の `/auth/confirm` を登録し、新規登録（Sign ups）を無効にする
