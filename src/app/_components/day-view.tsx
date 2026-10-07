@@ -64,7 +64,7 @@ export function DayView({ data }: { data: DayData }) {
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
         <Stat
           label="起床"
           value={data.sleep ? formatTime(data.sleep.wake_at) : "—"}
@@ -88,7 +88,6 @@ export function DayView({ data }: { data: DayData }) {
             .join("・") || undefined}
         />
         <Stat label="学習" value={studyMin ? formatDuration(studyMin) : "—"} sub={data.timeLogs.length ? `${data.timeLogs.length}件` : undefined} />
-        <Stat label="Claude Code" value={workMin ? formatDuration(workMin) : "—"} sub={data.workSessions.length ? `${data.workSessions.length}件` : undefined} />
       </div>
 
       <Card title="タイムライン">
