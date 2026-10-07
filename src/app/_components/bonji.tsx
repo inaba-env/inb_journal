@@ -1,6 +1,13 @@
 import type { ChecklistItem } from "@/lib/data";
 import { Card } from "./ui";
 
+// 全部できたら緑。半分以上なら黄、半分未満なら赤
+function barColor(ratio: number): string {
+  if (ratio >= 1) return "bg-emerald-500";
+  if (ratio >= 0.5) return "bg-amber-400";
+  return "bg-rose-500";
+}
+
 // いちばん上に出す凡事徹底。その日の進み具合のバーと、チェックリスト
 export function Bonji({ items }: { items: ChecklistItem[] }) {
   if (items.length === 0) return null;
@@ -15,7 +22,10 @@ export function Bonji({ items }: { items: ChecklistItem[] }) {
       }
     >
       <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-900">
-        <div className="h-full rounded-full bg-emerald-500 transition-[width]" style={{ width: `${(done / items.length) * 100}%` }} />
+        <div
+          className={`h-full rounded-full transition-[width] ${barColor(done / items.length)}`}
+          style={{ width: `${(done / items.length) * 100}%` }}
+        />
       </div>
       <ul className="flex flex-col gap-2">
         {items.map((i) => (
