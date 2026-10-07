@@ -24,6 +24,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 | 「〇月は毎日〇〇する」という期間つきの目標 | `habits` |
 | その目標を実施したか | `habit_checks`（運動の習慣は不要。下の「habits」参照） |
 | オフィスに着いた・出た時刻 | `office_logs` |
+| Claude Code での作業（時刻レンジ付き） | `work_sessions`（自動。下の「work_sessions」参照） |
 | 体重・歩数など数値で測るもの | `metrics` / `metric_logs` |
 | 気分 | `days.mood` |
 
@@ -74,6 +75,13 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 - 1日1行。着いた時刻（`arrived_at`）か出た時刻（`left_at`）の片方だけでも入れ、あとからもう片方を埋める
 - 「5時台にオフィス入り」のように分まで分からないときは、`note` に原文を残し、時刻は書かれている範囲の最初（5:00）を入れる
+
+## work_sessions
+
+- `~/.secretary/bin/cc-timeline-sheet.py` が `ログ/YYYY-MM-DD.md`（Claude Code の日次ログ）から自動で入れる。8時・18時に launchd で実行され、同じ日の `source = 'claude_code'` の行は丸ごと置き換える
+- 書き込みには専用ユーザー `cc_writer`（`work_sessions` と `days` にだけ書ける）を使う。接続情報は `~/.secretary/.credentials/inb_journal_cc_writer.env`
+- カテゴリは `work_categories` を正とする。カテゴリを増やすときはこのテーブルに行を足す（スクリプトは毎回ここから読む）
+- 手で足す作業は `source` を `manual` などにして、自動の置き換えに巻き込まれないようにする
 
 ## commitments
 
