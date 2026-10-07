@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Commitment, DayData, LearningKind, ReflectionKind } from "@/lib/data";
+import type { DayData, LearningKind, ReflectionKind } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
@@ -37,20 +37,6 @@ const WORKOUT_LABEL: Record<string, string> = {
   strength: "筋トレ",
   stretch: "ストレッチ",
   other: "運動",
-};
-const RESULT: Record<string, { label: string; className: string }> = {
-  done: {
-    label: "できた",
-    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
-  },
-  partial: {
-    label: "半分",
-    className: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
-  },
-  not_done: {
-    label: "できなかった",
-    className: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
-  },
 };
 
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
@@ -116,6 +102,7 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
 export function DayView({ data }: { data: DayData }) {
   const gratitude = data.reflections.filter((r) => r.kind === "gratitude");
   const reflections = data.reflections.filter((r) => r.kind !== "gratitude");
+  const reflectionTotal = Object.values(data.reflectionCounts).reduce((a, b) => a + (b ?? 0), 0);
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
@@ -304,66 +291,40 @@ export function DayView({ data }: { data: DayData }) {
               <HiddenNote total={data.gratitudeCount} shown={gratitude.length} />
             </Card>
           </Section>
-          {(data.commitmentsReviewed.length > 0 || data.reflectionCount > 0 || data.commitmentsMade.length > 0) && (
-            <Section title="振り返りと約束">
-              <CardStack>
-                {data.commitmentsReviewed.length > 0 && (
-                  <Card title="昨日の約束の振り返り" count={data.commitmentsReviewed.length}>
-                    <Commitments items={data.commitmentsReviewed} showResult />
-                  </Card>
-                )}
-                {data.reflectionCount > 0 && (
-                  <Card title="振り返り" count={data.reflectionCount}>
-                    <dl className="flex flex-col gap-3">
-                      {(Object.keys(REFLECTION_LABEL) as (keyof typeof REFLECTION_LABEL)[])
-                        .map((kind) => [kind, reflections.filter((r) => r.kind === kind)] as const)
-                        .filter(([, items]) => items.length > 0)
-                        .map(([kind, items]) => (
-                          <div key={kind}>
-                            <dt className="text-xs text-zinc-500">{REFLECTION_LABEL[kind]}</dt>
-                            {items.map((r) => (
-                              <dd key={r.id} className="text-sm">
-                                ・{r.content}
-                                {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
-                                {r.media && <span className="text-zinc-500">（{r.media}）</span>}
-                                <PrivateMark show={r.is_private} />
-                              </dd>
-                            ))}
-                          </div>
+          {reflectionTotal > 0 && (
+            <Section title="振り返り" count={reflectionTotal}>
+              {(Object.keys(REFLECTION_LABEL) as (keyof typeof REFLECTION_LABEL)[])
+                .filter((kind) => (data.reflectionCounts[kind] ?? 0) > 0)
+                .map((kind) => {
+                  const items = reflections.filter((r) => r.kind === kind);
+                  const count = data.reflectionCounts[kind] ?? 0;
+                  return (
+                    <div key={kind} className="flex flex-col gap-2">
+                      <SubHeading title={REFLECTION_LABEL[kind]} count={count} />
+                      <CardStack>
+                        {items.map((r) => (
+                          <Card key={r.id}>
+                            <p className="text-sm text-zinc-700 dark:text-zinc-300">
+                              {r.content}
+                              {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
+                              <PrivateMark show={r.is_private} />
+                            </p>
+                            {r.media && <p className="text-xs text-zinc-500">{r.media}</p>}
+                          </Card>
                         ))}
-                    </dl>
-                    <HiddenNote total={data.reflectionCount} shown={reflections.length} />
-                  </Card>
-                )}
-                {data.commitmentsMade.length > 0 && (
-                  <Card title="明日に向けて" count={data.commitmentsMade.length}>
-                    <Commitments items={data.commitmentsMade} />
-                  </Card>
-                )}
-              </CardStack>
+                        {items.length < count && (
+                          <Card>
+                            <HiddenNote total={count} shown={items.length} />
+                          </Card>
+                        )}
+                      </CardStack>
+                    </div>
+                  );
+                })}
             </Section>
           )}
         </div>
       </div>
     </div>
-  );
-}
-
-function Commitments({ items, showResult = false }: { items: Commitment[]; showResult?: boolean }) {
-  return (
-    <ul className="flex flex-col gap-2 text-sm">
-      {items.map((c) => (
-        <li key={c.id} className="flex flex-col gap-0.5">
-          <p>
-            {showResult && c.result && (
-              <span className={`mr-2 rounded px-1.5 py-0.5 text-xs ${RESULT[c.result].className}`}>{RESULT[c.result].label}</span>
-            )}
-            {c.content}
-            <PrivateMark show={c.is_private} />
-          </p>
-          {showResult && c.review_note && <p className="text-zinc-500">→ {c.review_note}</p>}
-        </li>
-      ))}
-    </ul>
   );
 }

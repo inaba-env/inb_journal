@@ -38,15 +38,6 @@ export type Reflection = {
   is_private: boolean;
 };
 
-export type Commitment = {
-  id: string;
-  made_on: string;
-  content: string;
-  result: "done" | "partial" | "not_done" | null;
-  review_note: string | null;
-  is_private: boolean;
-};
-
 export type DayData = {
   day: string;
   mood: string | null;
@@ -68,12 +59,10 @@ export type DayData = {
   workSessions: TimeBlock[];
   reflections: Reflection[];
   learnings: Learning[];
-  commitmentsMade: Commitment[];
-  commitmentsReviewed: Commitment[];
   // 感謝の件数は公開してよい（中身は非公開）ので、非公開の分も含めて数える
   gratitudeCount: number;
   // 振り返り（感謝以外）も件数は公開してよい
-  reflectionCount: number;
+  reflectionCounts: Partial<Record<ReflectionKind, number>>;
   // 学びの種類ごとの件数（非公開の分も含む）
   learningCounts: Record<LearningKind, number>;
 };
@@ -115,10 +104,8 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     workSessions,
     reflections,
     learnings,
-    made,
-    reviewed,
     gratitude,
-    reflectionTotal,
+    reflectionKinds,
     learningKinds,
   ] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
@@ -155,24 +142,12 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .eq("day", day)
       .in("is_private", privacy)
       .order("created_at"),
-    db
-      .from("commitments")
-      .select("id, made_on, content, result, review_note, is_private")
-      .eq("made_on", day)
-      .in("is_private", privacy)
-      .order("created_at"),
-    db
-      .from("commitments")
-      .select("id, made_on, content, result, review_note, is_private")
-      .eq("reviewed_on", day)
-      .in("is_private", privacy)
-      .order("created_at"),
     db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).eq("kind", "gratitude"),
-    db.from("reflections").select("id", { count: "exact", head: true }).eq("day", day).neq("kind", "gratitude"),
     // 件数を出すためだけに種類を読む（中身は読まない）
+    db.from("reflections").select("kind").eq("day", day).neq("kind", "gratitude"),
     db.from("learnings").select("kind").eq("day", day),
   ]);
-  for (const r of [gratitude, reflectionTotal]) if (r.error) throw new Error(r.error.message);
+  if (gratitude.error) throw new Error(gratitude.error.message);
 
   const d = check(dayRow);
   const name = (v: unknown) => (v as { name: string } | null)?.name ?? null;
@@ -217,10 +192,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       tags: (l.learning_tags as unknown as { tags: { name: string } | null }[]).flatMap((lt) => (lt.tags ? [lt.tags.name] : [])),
       is_private: l.is_private,
     })),
-    commitmentsMade: (check(made) ?? []) as Commitment[],
-    commitmentsReviewed: (check(reviewed) ?? []) as Commitment[],
     gratitudeCount: gratitude.count ?? 0,
-    reflectionCount: reflectionTotal.count ?? 0,
+    reflectionCounts: (check(reflectionKinds) ?? []).reduce<Partial<Record<ReflectionKind, number>>>(
+      (acc, r) => ({ ...acc, [r.kind]: (acc[r.kind as ReflectionKind] ?? 0) + 1 }),
+      {},
+    ),
     learningCounts: (check(learningKinds) ?? []).reduce((acc, l) => ({ ...acc, [l.kind]: acc[l.kind as LearningKind] + 1 }), {
       knowledge: 0,
       insight: 0,
