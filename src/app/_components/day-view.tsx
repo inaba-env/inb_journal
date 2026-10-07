@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Commitment, DayData, ReflectionKind } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
-import { timeColor, workColor } from "./categories";
+import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
 import { Card, PrivateMark, Section, Stat } from "./ui";
 
@@ -97,9 +97,6 @@ export function DayView({ data }: { data: DayData }) {
         <div className="flex flex-col gap-4">
           <Card title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             <BlockList blocks={data.timeLogs} color={timeColor} />
-          </Card>
-          <Card title="Claude Code の作業">
-            <BlockList blocks={data.workSessions} color={workColor} />
           </Card>
         </div>
         <div className="flex flex-col gap-4">
