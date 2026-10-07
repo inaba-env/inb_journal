@@ -1,8 +1,21 @@
-export function Card({ title, aside, children }: { title: string; aside?: React.ReactNode; children: React.ReactNode }) {
+export function Card({
+  title,
+  icon,
+  aside,
+  children,
+}: {
+  title: string;
+  icon?: React.ReactNode;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <div className="flex items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">{title}</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {icon}
+          {title}
+        </h2>
         {aside && <span className="text-xs text-zinc-500">{aside}</span>}
       </div>
       {children}

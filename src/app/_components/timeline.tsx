@@ -118,19 +118,27 @@ function Lane({
 }
 
 // 帯の下に出す一覧（時刻順）
-export function BlockList({ blocks, color }: { blocks: TimeBlock[]; color: (c: string | null) => string }) {
+export function BlockList({
+  blocks,
+  color,
+  hideCategory = false,
+}: {
+  blocks: TimeBlock[];
+  color: (c: string | null) => string;
+  hideCategory?: boolean;
+}) {
   if (blocks.length === 0) return <p className="text-sm text-zinc-500">記録なし</p>;
   return (
     <ul className="flex flex-col gap-1.5 text-sm">
       {blocks.map((b) => (
-        <li key={b.id} className="grid grid-cols-[6.5rem_auto_1fr] items-baseline gap-2">
+        <li key={b.id} className={`grid items-baseline gap-2 ${hideCategory ? "grid-cols-[6.5rem_1fr]" : "grid-cols-[6.5rem_auto_1fr]"}`}>
           <span className="tabular-nums text-zinc-500">
             {formatTime(b.started_at)}–{formatTime(b.ended_at)}
           </span>
-          <span className={`size-2.5 translate-y-[-1px] self-center rounded-sm ${color(b.category)}`} />
+          {!hideCategory && <span className={`size-2.5 translate-y-[-1px] self-center rounded-sm ${color(b.category)}`} />}
           <span className="min-w-0">
-            <span className="text-zinc-500">{b.category ?? "未分類"}</span>
-            {b.label && <span>　{b.label}</span>}
+            {!hideCategory && <span className="text-zinc-500">{b.category ?? "未分類"}　</span>}
+            {b.label && <span>{b.label}</span>}
             {b.detail && <span className="text-zinc-500">（{b.detail}）</span>}
             <span className="ml-2 text-xs text-zinc-400">{formatDuration(b.duration_min)}</span>
           </span>

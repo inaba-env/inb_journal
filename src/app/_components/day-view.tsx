@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Commitment, DayData, ReflectionKind } from "@/lib/data";
+import type { Commitment, DayData, LearningKind, ReflectionKind } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
@@ -18,7 +18,14 @@ const REFLECTION_LABEL: Record<ReflectionKind, string> = {
   music: "今日の音楽",
 };
 
-const KIND_LABEL = { knowledge: "知識", insight: "気づき", practice: "やり方", reflection: "振り返り" } as const;
+const KIND_LABEL: Record<LearningKind, string> = { knowledge: "知識", insight: "気づき", practice: "やり方", reflection: "振り返り" };
+
+// 最初に出てきた順でまとめる
+function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
+  const map = new Map<string, T[]>();
+  for (const item of items) map.set(key(item), [...(map.get(key(item)) ?? []), item]);
+  return [...map.entries()];
+}
 const WORKOUT_LABEL: Record<string, string> = { run: "ラン", walk: "ウォーク", strength: "筋トレ", stretch: "ストレッチ", other: "運動" };
 const RESULT: Record<string, { label: string; className: string }> = {
   done: { label: "できた", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
@@ -95,9 +102,22 @@ export function DayView({ data }: { data: DayData }) {
 
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-4">
-          <Card title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
-            <BlockList blocks={data.timeLogs} color={timeColor} />
-          </Card>
+          <Section title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
+            {data.timeLogs.length === 0 ? (
+              <p className="px-1 text-sm text-zinc-500">記録なし</p>
+            ) : (
+              groupBy(data.timeLogs, (t) => t.category ?? "未分類").map(([category, blocks]) => (
+                <Card
+                  key={category}
+                  title={category}
+                  icon={<span className={`size-2.5 rounded-sm ${timeColor(category)}`} />}
+                  aside={formatDuration(blocks.reduce((s, b) => s + b.duration_min, 0))}
+                >
+                  <BlockList blocks={blocks} color={timeColor} hideCategory />
+                </Card>
+              ))
+            )}
+          </Section>
         </div>
         <div className="flex flex-col gap-4">
           {data.commitmentsReviewed.length > 0 && (
@@ -105,36 +125,41 @@ export function DayView({ data }: { data: DayData }) {
               <Commitments items={data.commitmentsReviewed} showResult />
             </Card>
           )}
-          {data.learnings.length > 0 && (
-            <Section title="学び" aside={`${data.learnings.length}件`}>
-              <ul className="flex flex-col gap-2">
-                {data.learnings.map((l) => (
-                  <li key={l.id} className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
-                    <p className="text-xs text-zinc-500">
-                      {KIND_LABEL[l.kind]}
-                      {l.media && `・${l.media}`}
-                      {l.context && !l.media && `・${l.context}`}
-                    </p>
-                    <p className="font-medium">
-                      {l.title}
-                      <PrivateMark show={l.is_private} />
-                    </p>
-                    <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
-                    {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
-                    {l.tags.length > 0 && (
-                      <p className="flex flex-wrap gap-1 pt-1">
-                        {l.tags.map((t) => (
-                          <span key={t} className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                            {t}
-                          </span>
-                        ))}
-                      </p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </Section>
-          )}
+          <Section title="学び" aside={`${data.learnings.length}件`}>
+            {(Object.keys(KIND_LABEL) as LearningKind[]).map((kind) => {
+              const items = data.learnings.filter((l) => l.kind === kind);
+              return (
+                <Card key={kind} title={KIND_LABEL[kind]} aside={items.length ? `${items.length}件` : undefined}>
+                  {items.length === 0 ? (
+                    <p className="text-sm text-zinc-400">なし</p>
+                  ) : (
+                    <ul className="flex flex-col divide-y divide-zinc-200 dark:divide-zinc-800">
+                      {items.map((l) => (
+                        <li key={l.id} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+                          {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
+                          <p className="font-medium">
+                            {l.title}
+                            <PrivateMark show={l.is_private} />
+                          </p>
+                          <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
+                          {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
+                          {l.tags.length > 0 && (
+                            <p className="flex flex-wrap gap-1 pt-1">
+                              {l.tags.map((t) => (
+                                <span key={t} className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
+                                  {t}
+                                </span>
+                              ))}
+                            </p>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </Card>
+              );
+            })}
+          </Section>
           {data.reflections.length > 0 && (
             <Card title="振り返り">
               <dl className="flex flex-col gap-3">
