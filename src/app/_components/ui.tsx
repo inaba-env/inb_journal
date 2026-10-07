@@ -5,22 +5,42 @@ function Heading({
   icon,
   count,
   aside,
+  large = false,
 }: {
   title?: React.ReactNode;
   icon?: React.ReactNode;
   count?: number;
   aside?: React.ReactNode;
+  large?: boolean;
 }) {
   const right = count !== undefined ? `${count}件` : aside;
   if (!title && !right) return null;
   return (
-    <div className="flex items-baseline justify-between gap-2">
-      <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+    <div className="flex items-center justify-between gap-3">
+      <h2
+        className={
+          "flex min-w-0 items-center gap-2 font-bold text-ink " + (large ? "text-[17px] tracking-tight" : "text-sm")
+        }
+      >
         {icon}
         {title}
       </h2>
-      {right && <span className="text-xs text-zinc-500 tabular-nums">{right}</span>}
+      {right && <Pill muted={count === 0}>{right}</Pill>}
     </div>
+  );
+}
+
+// 件数や時間を出す小さな丸い札
+export function Pill({ children, muted = false }: { children: React.ReactNode; muted?: boolean }) {
+  return (
+    <span
+      className={
+        "shrink-0 rounded-full px-2.5 py-0.5 font-mono text-[11px] font-medium tabular-nums " +
+        (muted ? "text-faint" : "bg-surface-2 text-muted")
+      }
+    >
+      {children}
+    </span>
   );
 }
 
@@ -30,15 +50,17 @@ export function Card({
   count,
   aside,
   children,
+  className = "",
 }: {
   title?: React.ReactNode;
   icon?: React.ReactNode;
   count?: number;
   aside?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
+    <section className={`flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card ${className}`}>
       <Heading title={title} icon={icon} count={count} aside={aside} />
       {children}
     </section>
@@ -58,9 +80,9 @@ export function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="flex flex-col gap-2">
+    <section className="flex flex-col gap-3">
       <div className="px-1">
-        <Heading title={title} count={count} aside={aside} />
+        <Heading title={title} count={count} aside={aside} large />
       </div>
       {children}
     </section>
@@ -70,23 +92,27 @@ export function Section({
 // セクションの中の小見出し（学びの種類など）。件数の出し方はセクションと同じ
 export function SubHeading({ title, count }: { title: string; count: number }) {
   return (
-    <h3 className="flex items-baseline justify-between px-1 pt-1 text-xs text-zinc-500">
+    <h3 className="flex items-center gap-3 px-1 pt-1 text-xs font-medium text-muted">
       <span>{title}</span>
-      <span className="tabular-nums">{count}件</span>
+      <span className="h-px flex-1 bg-line" />
+      <span className="font-mono tabular-nums text-faint">{count}件</span>
     </h3>
   );
 }
 
-// 記録がないとき
-export function Empty() {
-  return <p className="text-sm text-zinc-400">記録なし</p>;
+// 記録がないとき。中身のあるカードより一段引っ込めて、破線の枠だけにする
+export function EmptyCard() {
+  return (
+    <div className="rounded-2xl border border-dashed border-line px-5 py-4 text-sm text-faint">記録なし</div>
+  );
 }
 
 // 総数のうち見えていない分（チームの画面で非公開の記録があるとき）
 export function HiddenNote({ total, shown }: { total: number; shown: number }) {
   if (total <= shown) return null;
   return (
-    <p className="text-xs text-zinc-500">
+    <p className="flex items-center gap-2 text-xs text-muted">
+      <LockGlyph />
       {shown > 0 ? "ほか" : ""}非公開 {total - shown}件
     </p>
   );
@@ -94,49 +120,59 @@ export function HiddenNote({ total, shown }: { total: number; shown: number }) {
 
 export function PrivateMark({ show }: { show: boolean }) {
   return show ? (
-    <span className="ml-1.5 rounded bg-zinc-200 px-1 align-middle text-[10px] text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+    <span className="ml-1.5 inline-flex items-center gap-1 rounded-full border border-line px-1.5 align-middle text-[10px] font-normal text-muted">
+      <LockGlyph />
       非公開
     </span>
   ) : null;
 }
 
-export function Stat({ label, value, sub }: { label: string; value: React.ReactNode; sub?: React.ReactNode }) {
+// 鍵の形。文字の大きさに合わせる
+function LockGlyph() {
   return (
-    <div className="flex flex-col gap-0.5 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-      <span className="text-xs text-zinc-500">{label}</span>
-      <span className="text-lg font-semibold tabular-nums">{value}</span>
-      {sub && <span className="text-xs text-zinc-500">{sub}</span>}
-    </div>
+    <svg viewBox="0 0 16 16" className="size-[1em]" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden>
+      <rect x="3.5" y="7" width="9" height="6.5" rx="1.5" />
+      <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+    </svg>
   );
 }
 
-// 2つの時刻を1枚に並べるカード（起床・就寝、出社・退社）
-export function PairStat({
+// 上の段に並べる数値のタイル。値が無いときは薄く出す
+export function Metric({
   label,
   items,
   sub,
+  className = "",
 }: {
   label: string;
-  items: { label: string; value: React.ReactNode }[];
+  items: { label: string; value: string | null }[];
   sub?: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-1 rounded-lg border border-zinc-200 p-3 dark:border-zinc-800">
-      <span className="text-xs text-zinc-500">{label}</span>
-      <div className="flex gap-6">
+    <div className={`flex flex-col justify-between gap-4 rounded-2xl border border-line bg-surface p-5 shadow-card ${className}`}>
+      <span className="text-xs font-bold text-muted">{label}</span>
+      <div className="flex flex-wrap gap-x-7 gap-y-3">
         {items.map((item) => (
-          <div key={item.label} className="flex flex-col">
-            <span className="text-[11px] text-zinc-500">{item.label}</span>
-            <span className="text-lg font-semibold tabular-nums">{item.value}</span>
+          <div key={item.label} className="flex flex-col gap-1">
+            <span className="text-[11px] text-faint">{item.label}</span>
+            <span
+              className={
+                "font-mono text-2xl leading-none font-semibold tracking-tight tabular-nums " +
+                (item.value ? "text-ink" : "text-faint/60")
+              }
+            >
+              {item.value ?? "--"}
+            </span>
           </div>
         ))}
       </div>
-      {sub && <span className="text-xs text-zinc-500">{sub}</span>}
+      <span className="min-h-4 text-xs text-muted">{sub}</span>
     </div>
   );
 }
 
 // セクションの中でカードを縦に並べる
 export function CardStack({ children }: { children: React.ReactNode }) {
-  return <div className="flex flex-col gap-2">{children}</div>;
+  return <div className="flex flex-col gap-2.5">{children}</div>;
 }
