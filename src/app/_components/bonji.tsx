@@ -17,7 +17,7 @@ export function Bonji({ items }: { items: ChecklistItem[] }) {
       <div className="h-2.5 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-900">
         <div className="h-full rounded-full bg-emerald-500 transition-[width]" style={{ width: `${(done / items.length) * 100}%` }} />
       </div>
-      <ul className="flex flex-wrap gap-x-6 gap-y-2">
+      <ul className="flex flex-col gap-2">
         {items.map((i) => (
           <li key={i.id} className="flex items-center gap-2 text-sm">
             <span
