@@ -20,8 +20,10 @@ export function Timeline({
   workSessions: TimeBlock[];
   markers: Marker[];
 }) {
+  // スマホでは幅が足りないので、帯を広く描いて横スクロールにする（段の名前は左に固定）
   return (
-    <div className="flex flex-col gap-2">
+    <div className="-mr-4 overflow-x-auto pr-4 sm:mr-0 sm:overflow-visible sm:pr-0">
+    <div className="flex min-w-[720px] flex-col gap-2 sm:min-w-0">
       <div className="relative ml-16 h-4 text-[10px] text-zinc-500 sm:ml-24">
         {HOURS.map((h) => (
           <span key={h} className="absolute -translate-x-1/2 tabular-nums" style={{ left: `${(h / 24) * 100}%` }}>
@@ -29,7 +31,7 @@ export function Timeline({
           </span>
         ))}
       </div>
-      <Lane title="学習" day={day} blocks={timeLogs} color={timeColor} markers={markers} />
+      <Lane title="学習" day={day} blocks={timeLogs} color={timeColor} markers={markers} tooltipBelow />
       <Lane title="運動" day={day} blocks={workouts} color={() => "bg-emerald-500"} markers={markers} />
       <Lane title="Claude Code" day={day} blocks={workSessions} color={workColor} markers={markers} />
       {markers.length > 0 && (
@@ -37,6 +39,7 @@ export function Timeline({
           {markers.map((m) => `${m.label} ${formatTime(m.at)}`).join("　")}
         </p>
       )}
+    </div>
     </div>
   );
 }
@@ -64,19 +67,23 @@ function Lane({
   blocks,
   color,
   markers,
+  tooltipBelow = false,
 }: {
   title: string;
   day: string;
   blocks: TimeBlock[];
   color: (c: string | null) => string;
   markers: Marker[];
+  tooltipBelow?: boolean;
 }) {
   const placed = stack(blocks, day);
   const rowCount = Math.max(1, ...placed.map((p) => p.row + 1));
 
   return (
     <div className="flex items-start gap-2">
-      <span className="w-14 shrink-0 pt-1 text-xs text-zinc-500 sm:w-22">{title}</span>
+      <span className="sticky left-0 z-30 w-14 shrink-0 self-stretch bg-background pt-1 text-xs text-zinc-500 sm:static sm:w-22 sm:bg-transparent">
+        {title}
+      </span>
       <div className="relative flex-1 rounded bg-zinc-100 dark:bg-zinc-900" style={{ height: rowCount * ROW_PX + 6 }}>
         {HOURS.slice(1, -1).map((h) => (
           <span key={h} className="absolute inset-y-0 w-px bg-zinc-200 dark:bg-zinc-800" style={{ left: `${(h / 24) * 100}%` }} />
@@ -102,7 +109,8 @@ function Lane({
           >
             <span
               className={
-                "pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+                "pointer-events-none absolute z-20 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+                (tooltipBelow ? "top-full mt-1.5 " : "bottom-full mb-1.5 ") +
                 (start > 1440 * 0.65 ? "right-0" : start < 1440 * 0.35 ? "left-0" : "left-1/2 -translate-x-1/2")
               }
             >
