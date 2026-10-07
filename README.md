@@ -21,13 +21,13 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 
 ## データ
 
-テーブルは `supabase/migrations/` を参照。
+テーブルは `supabase/migrations/` を参照。何をどのテーブルに入れるかは `docs/recording-rules.md` にまとめている。
 
 | テーブル | 中身 |
 |---|---|
 | `notes` | その日に書き留めたこと（学び・振り返り・感謝・音楽）。大分類 `note_categories`・小分類 `note_kinds` で分け、画面はこの分け方どおりにセクション・小見出し・カードで出す |
-| `sleep_logs` | 睡眠。`sleep_date` は起きた日。`duration_min` は自動計算 |
-| `habits` / `habit_checks` | 期間つきの習慣目標と、日ごとの達成 |
+| `sleep_logs` | 睡眠。`day` は起きた日。`duration_min` は自動計算 |
+| `habits` / `habit_checks` | 凡事徹底のチェックリストの項目（`in_checklist`）と、日ごとのチェック |
 | `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |
 
 - 各テーブルとも RLS を有効にし、`anon` / `authenticated` には権限を与えていない（Data API から直接は読めない）
