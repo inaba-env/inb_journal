@@ -1,8 +1,6 @@
-import Link from "next/link";
 import { Fragment } from "react";
 import type { ChecklistItem, DayData, Exercise } from "@/lib/data";
-import { addDays } from "@/lib/data";
-import { formatDate, formatDuration, formatTime } from "@/lib/format";
+import { formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { GithubSection } from "./github";
 import { LinksSection } from "./links";
@@ -51,95 +49,18 @@ function activityStats(a: DayData["activities"][number]): string {
     .join("・");
 }
 
-const WEEKDAY_NAMES = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
-
-export function DayHeader({
-  day,
-  today,
-  mood,
-  isOwner,
-}: {
-  day: string;
-  today: string;
-  mood: string | null;
-  isOwner: boolean;
-}) {
-  const d = new Date(`${day}T00:00:00Z`);
+// 気分と閲覧中の立場。記録や認証に依るので見出しには入れず、中身の先頭（見出しのすぐ下）に出す
+export function DayMeta({ mood, isOwner }: { mood: string | null; isOwner: boolean }) {
+  if (!mood && !isOwner) return null;
   return (
-    <header className="rise flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-2">
-      <div className="flex flex-col gap-2">
-        <p className="flex items-center gap-2 text-sm font-medium text-muted">
-          <span className="font-mono tabular-nums">{d.getUTCFullYear()}</span>
-          <span>{WEEKDAY_NAMES[d.getUTCDay()]}</span>
-          {day === today && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-bold text-accent">今日</span>}
-        </p>
-        <h1 className="text-4xl leading-none font-bold tracking-tight sm:text-5xl" aria-label={formatDate(day)}>
-          <span className="font-mono tabular-nums">{d.getUTCMonth() + 1}</span>
-          <span className="mx-0.5 text-[0.6em] text-muted">月</span>
-          <span className="font-mono tabular-nums">{d.getUTCDate()}</span>
-          <span className="ml-0.5 text-[0.6em] text-muted">日</span>
-        </h1>
-        {(mood || isOwner) && (
-          <p className="flex flex-wrap items-center gap-2 pt-1 text-sm text-muted">
-            {mood && (
-              <span className="rounded-full border border-line bg-surface px-3 py-1">
-                <span className="text-faint">気分</span>　{mood}
-              </span>
-            )}
-            {isOwner && <span className="text-xs text-faint">本人として閲覧中（非公開の記録も表示）</span>}
-          </p>
-        )}
-      </div>
-      <nav className="flex items-center rounded-full border border-line bg-surface p-1 shadow-card">
-        <NavButton href={`/days/${addDays(day, -1)}`} label="前の日">
-          <Chevron direction="left" />
-        </NavButton>
-        <NavButton href={day !== today ? "/" : undefined} label="今日">
-          今日
-        </NavButton>
-        <NavButton href={day < today ? `/days/${addDays(day, 1)}` : undefined} label="次の日">
-          <Chevron direction="right" />
-        </NavButton>
-      </nav>
-    </header>
-  );
-}
-
-// 使えないときも消さずに薄く出し、ボタンの位置が日によって変わらないようにする
-function NavButton({ href, label, children }: { href?: string; label: string; children: React.ReactNode }) {
-  const base = "flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-sm font-medium";
-  if (!href) {
-    return (
-      <span aria-label={label} aria-disabled className={`${base} text-faint/50`}>
-        {children}
-      </span>
-    );
-  }
-  return (
-    <Link
-      href={href}
-      aria-label={label}
-      className={`${base} text-ink transition hover:bg-surface-2 active:scale-[0.96]`}
-    >
-      {children}
-    </Link>
-  );
-}
-
-function Chevron({ direction }: { direction: "left" | "right" }) {
-  return (
-    <svg
-      viewBox="0 0 16 16"
-      className="size-4"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.75"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d={direction === "left" ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} />
-    </svg>
+    <p className="rise -mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+      {mood && (
+        <span className="rounded-full border border-line bg-surface px-3 py-1">
+          <span className="text-faint">気分</span>　{mood}
+        </span>
+      )}
+      {isOwner && <span className="text-xs text-faint">本人として閲覧中（非公開の記録も表示）</span>}
+    </p>
   );
 }
 
