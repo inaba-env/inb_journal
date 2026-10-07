@@ -4,15 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type LearningKind = "knowledge" | "insight" | "practice" | "reflection";
 export type ReflectionKind =
-  | "highlight"
-  | "thought"
-  | "gratitude"
-  | "quiet_good"
-  | "went_well"
-  | "went_badly"
-  | "carried_over"
-  | "catch_up"
-  | "music";
+  "highlight" | "thought" | "gratitude" | "quiet_good" | "went_well" | "went_badly" | "carried_over" | "catch_up" | "music";
 
 export type TimeBlock = {
   id: string;
@@ -79,17 +71,7 @@ export type DayData = {
   commitmentsReviewed: Commitment[];
 };
 
-export type HabitSummary = {
-  id: string;
-  name: string;
-  description: string | null;
-  start_on: string;
-  end_on: string;
-  streak: number;
-  achieved: number;
-  elapsed: number;
-  recent: { day: string; done: boolean }[];
-};
+export type ChecklistItem = { id: string; name: string; done: boolean };
 
 export function todayJst(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Tokyo" });
@@ -116,51 +98,54 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, reflections, learnings, made, reviewed] =
-    await Promise.all([
-      db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
-      db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
-      db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
-      db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
-      db.from("workouts").select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private").eq("day", day).in("is_private", privacy),
-      db
-        .from("time_logs")
-        .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("started_at"),
-      db
-        .from("work_sessions")
-        .select("id, started_at, ended_at, duration_min, subject, description, is_private, work_categories(name)")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("started_at"),
-      db
-        .from("reflections")
-        .select("id, kind, content, reason, is_private")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("kind")
-        .order("sort_order"),
-      db
-        .from("learnings")
-        .select("id, title, insight, kind, context, next_action, is_private, media(title), learning_tags(tags(name))")
-        .eq("day", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-      db
-        .from("commitments")
-        .select("id, made_on, content, result, review_note, is_private")
-        .eq("made_on", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-      db
-        .from("commitments")
-        .select("id, made_on, content, result, review_note, is_private")
-        .eq("reviewed_on", day)
-        .in("is_private", privacy)
-        .order("created_at"),
-    ]);
+  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, reflections, learnings, made, reviewed] = await Promise.all([
+    db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
+    db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
+    db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
+    db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
+    db
+      .from("workouts")
+      .select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private")
+      .eq("day", day)
+      .in("is_private", privacy),
+    db
+      .from("time_logs")
+      .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("started_at"),
+    db
+      .from("work_sessions")
+      .select("id, started_at, ended_at, duration_min, subject, description, is_private, work_categories(name)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("started_at"),
+    db
+      .from("reflections")
+      .select("id, kind, content, reason, is_private")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("kind")
+      .order("sort_order"),
+    db
+      .from("learnings")
+      .select("id, title, insight, kind, context, next_action, is_private, media(title), learning_tags(tags(name))")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    db
+      .from("commitments")
+      .select("id, made_on, content, result, review_note, is_private")
+      .eq("made_on", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    db
+      .from("commitments")
+      .select("id, made_on, content, result, review_note, is_private")
+      .eq("reviewed_on", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+  ]);
 
   const d = check(dayRow);
   const name = (v: unknown) => (v as { name: string } | null)?.name ?? null;
@@ -210,47 +195,25 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   };
 }
 
-// 指定日に期間中の習慣と、その日までの連続日数・達成数・直近14日
-export async function loadHabits(day: string, includePrivate: boolean): Promise<HabitSummary[]> {
+// 凡事徹底のチェックリスト（その日に続けている項目と、その日のチェック）
+export async function loadChecklist(day: string, includePrivate: boolean): Promise<ChecklistItem[]> {
   await connection();
   const db = createAdminClient();
-  const habits =
+  const items =
     check(
       await db
         .from("habits")
-        .select("id, name, description, start_on, end_on")
+        .select("id, name, habit_checks(day, done)")
+        .eq("in_checklist", true)
         .in("is_private", includePrivate ? [true, false] : [false])
         .lte("start_on", day)
-        .gte("end_on", day)
-        .order("start_on"),
+        .or(`end_on.is.null,end_on.gte.${day}`)
+        .eq("habit_checks.day", day)
+        .order("sort_order"),
     ) ?? [];
-  if (habits.length === 0) return [];
-
-  const days =
-    check(
-      await db
-        .from("habit_days")
-        .select("habit_id, day, done")
-        .in("habit_id", habits.map((h) => h.id))
-        .lte("day", day)
-        .order("day"),
-    ) ?? [];
-
-  return habits.map((h) => {
-    const mine = days.filter((d) => d.habit_id === h.id);
-    // その日がまだ未達なら、前日までの連続で数える
-    let streak = 0;
-    for (let i = mine.length - 1; i >= 0; i--) {
-      if (mine[i].done) streak++;
-      else if (i === mine.length - 1 && mine[i].day === day) continue;
-      else break;
-    }
-    return {
-      ...h,
-      streak,
-      achieved: mine.filter((d) => d.done).length,
-      elapsed: mine.length,
-      recent: mine.slice(-14).map(({ day, done }) => ({ day, done })),
-    };
-  });
+  return items.map((h) => ({
+    id: h.id,
+    name: h.name,
+    done: (h.habit_checks as { day: string; done: boolean }[]).some((c) => c.done),
+  }));
 }

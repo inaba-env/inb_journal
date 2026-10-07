@@ -2,9 +2,9 @@ import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { connection } from "next/server";
 import { resolveViewer } from "@/lib/access";
-import { isValidDate, loadDay, loadHabits, todayJst } from "@/lib/data";
+import { isValidDate, loadChecklist, loadDay, todayJst } from "@/lib/data";
 import { DayHeader, DayView } from "./day-view";
-import { Habits } from "./habits";
+import { BonjiProgress } from "./bonji";
 
 // ホーム（day 省略＝今日）と /days/[date] の共通の中身
 export async function DayPage({ day: requested }: { day?: string }) {
@@ -17,13 +17,13 @@ export async function DayPage({ day: requested }: { day?: string }) {
   if (!isValidDate(day) || day > today) notFound();
 
   const isOwner = viewer.kind === "owner";
-  const [data, habits] = await Promise.all([loadDay(day, isOwner), loadHabits(day, isOwner)]);
+  const [data, checklist] = await Promise.all([loadDay(day, isOwner), loadChecklist(day, isOwner)]);
 
   return (
     <>
       <DayHeader day={day} today={today} mood={data.mood} />
-      <Habits habits={habits} today={day} />
-      <DayView data={data} />
+      <BonjiProgress items={checklist} />
+      <DayView data={data} checklist={checklist} />
       {isOwner && <p className="text-right text-xs text-zinc-400">本人として閲覧中（非公開の記録も表示）</p>}
     </>
   );
