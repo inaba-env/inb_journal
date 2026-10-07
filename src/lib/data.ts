@@ -70,7 +70,7 @@ export type DayData = {
     is_private: boolean;
     // ランのとき
     distance_km: number | null;
-    // 筋トレのとき（種目ごと、sort_order 順）。種目の中身は本人にだけ返し、訪問者には空にする
+    // 筋トレのとき（種目ごと、sort_order 順）。筋トレの中身は本人にだけ返し、訪問者には種目もメモも空にする
     exercises: Exercise[];
     // 種目の数。数は公開してよいので訪問者にも返す
     exercise_count: number;
@@ -176,6 +176,8 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       ...a,
       // runs は1対1だが、配列で返ってきても扱えるようにする
       distance_km: [runs].flat()[0]?.distance_km ?? null,
+      // 筋トレの中身（種目とメモ）は is_private に関係なく本人にだけ見せる
+      note: includePrivate || a.type !== "strength" ? a.note : null,
       exercises: includePrivate ? (workouts as Exercise[]) : [],
       exercise_count: workouts.length,
     })),
