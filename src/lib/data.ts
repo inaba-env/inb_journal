@@ -4,18 +4,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type Learning = {
   id: string;
-  learned_on: string;
+  day: string;
   title: string;
-  body: string | null;
+  insight: string;
+  kind: "knowledge" | "insight" | "practice" | "reflection";
+  context: string | null;
+  next_action: string | null;
   tags: string[];
   is_private: boolean;
 };
 
 export type SleepLog = {
-  sleep_date: string;
-  bed_at: string;
+  day: string;
+  bed_at: string | null;
   wake_at: string;
-  duration_min: number;
+  duration_min: number | null;
   quality: number | null;
   is_private: boolean;
 };
@@ -27,7 +30,7 @@ export type Habit = {
   start_on: string;
   end_on: string;
   is_private: boolean;
-  checks: { checked_on: string; done: boolean }[];
+  checks: { day: string; done: boolean }[];
 };
 
 export type Metric = {
@@ -35,7 +38,7 @@ export type Metric = {
   name: string;
   unit: string | null;
   is_private: boolean;
-  logs: { logged_on: string; value: number }[];
+  logs: { day: string; value: number }[];
 };
 
 export function todayJst(): string {
@@ -58,23 +61,23 @@ export async function loadDashboard(includePrivate: boolean) {
   const privacy = includePrivate ? [true, false] : [false];
 
   const [learnings, sleep, habits, metrics] = await Promise.all([
-    db.from("learnings").select("id, learned_on, title, body, tags, is_private")
+    db.from("learnings").select("id, day, title, insight, kind, context, next_action, is_private, learning_tags(tags(name))")
       .in("is_private", privacy)
-      .order("learned_on", { ascending: false })
+      .order("day", { ascending: false })
       .order("created_at", { ascending: false })
       .limit(30),
-    db.from("sleep_logs").select("sleep_date, bed_at, wake_at, duration_min, quality, is_private")
+    db.from("sleep_logs").select("day, bed_at, wake_at, duration_min, quality, is_private")
       .in("is_private", privacy)
-      .gte("sleep_date", since)
-      .order("sleep_date", { ascending: true }),
-    db.from("habits").select("id, name, description, start_on, end_on, is_private, checks:habit_checks(checked_on, done)")
+      .gte("day", since)
+      .order("day", { ascending: true }),
+    db.from("habits").select("id, name, description, start_on, end_on, is_private, checks:habit_checks(day, done)")
       .in("is_private", privacy)
       .lte("start_on", today)
       .gte("end_on", today)
       .order("start_on", { ascending: true }),
-    db.from("metrics").select("id, name, unit, is_private, metric_logs(logged_on, value)")
+    db.from("metrics").select("id, name, unit, is_private, metric_logs(day, value)")
       .in("is_private", privacy)
-      .gte("metric_logs.logged_on", since)
+      .gte("metric_logs.day", since)
       .order("name", { ascending: true }),
   ]);
 
@@ -85,7 +88,10 @@ export async function loadDashboard(includePrivate: boolean) {
   return {
     today,
     since,
-    learnings: (learnings.data ?? []) as Learning[],
+    learnings: (learnings.data ?? []).map(({ learning_tags, ...l }) => ({
+      ...l,
+      tags: (learning_tags as unknown as { tags: { name: string } | null }[]).flatMap((lt) => (lt.tags ? [lt.tags.name] : [])),
+    })) as Learning[],
     sleep: (sleep.data ?? []) as SleepLog[],
     habits: (habits.data ?? []) as Habit[],
     // 埋め込みの絞り込みはテーブル名で書く必要があるので、別名を付けずに取ってから詰め替える

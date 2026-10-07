@@ -70,7 +70,7 @@ function Habits({ habits, today }: { habits: Habit[]; today: string }) {
   return (
     <ul className="flex flex-col gap-5">
       {habits.map((h) => {
-        const done = new Set(h.checks.filter((c) => c.done).map((c) => c.checked_on));
+        const done = new Set(h.checks.filter((c) => c.done).map((c) => c.day));
         const days: string[] = [];
         for (let d = h.start_on; d <= h.end_on; d = addDays(d, 1)) days.push(d);
         const elapsed = days.filter((d) => d <= today);
@@ -123,14 +123,17 @@ function formatDuration(min: number) {
 function Sleep({ logs, since, today }: { logs: SleepLog[]; since: string; today: string }) {
   if (logs.length === 0) return <Empty />;
 
-  const byDate = new Map(logs.map((l) => [l.sleep_date, l]));
+  const byDate = new Map(logs.map((l) => [l.day, l]));
   const days: string[] = [];
   for (let d = since; d <= today; d = addDays(d, 1)) days.push(d);
-  const avg = Math.round(logs.reduce((s, l) => s + l.duration_min, 0) / logs.length);
+  const durations = logs.flatMap((l) => (l.duration_min === null ? [] : [l.duration_min]));
+  const avg = durations.length > 0 ? Math.round(durations.reduce((s, d) => s + d, 0) / durations.length) : null;
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm text-zinc-500">平均 {formatDuration(avg)}（{logs.length}日分）</p>
+      <p className="text-sm text-zinc-500">
+        {avg !== null ? `平均 ${formatDuration(avg)}（${durations.length}日分）` : `起床時刻のみ ${logs.length}日分`}
+      </p>
       <ul className="flex flex-col gap-1 text-sm">
         {days.map((d) => {
           const l = byDate.get(d);
@@ -138,7 +141,7 @@ function Sleep({ logs, since, today }: { logs: SleepLog[]; since: string; today:
             <li key={d} className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-3">
               <span className="tabular-nums text-zinc-500">{d.slice(5)}</span>
               <span className="h-3 rounded-sm bg-zinc-100 dark:bg-zinc-900">
-                {l && (
+                {l?.duration_min != null && (
                   <span
                     className="block h-3 rounded-sm bg-sky-500"
                     style={{ width: `${Math.min(100, (l.duration_min / 600) * 100)}%` }}
@@ -146,7 +149,11 @@ function Sleep({ logs, since, today }: { logs: SleepLog[]; since: string; today:
                 )}
               </span>
               <span className="tabular-nums">
-                {l ? `${formatTime(l.bed_at)}–${formatTime(l.wake_at)}　${formatDuration(l.duration_min)}` : "—"}
+                {l
+                  ? l.bed_at && l.duration_min !== null
+                    ? `${formatTime(l.bed_at)}–${formatTime(l.wake_at)}　${formatDuration(l.duration_min)}`
+                    : `起床 ${formatTime(l.wake_at)}`
+                  : "—"}
                 {l && <PrivateMark show={l.is_private} />}
               </span>
             </li>
@@ -164,7 +171,7 @@ function Metrics({ metrics }: { metrics: Metric[] }) {
   return (
     <ul className="grid gap-4 sm:grid-cols-2">
       {withLogs.map((m) => {
-        const logs = [...m.logs].sort((a, b) => a.logged_on.localeCompare(b.logged_on));
+        const logs = [...m.logs].sort((a, b) => a.day.localeCompare(b.day));
         const latest = logs[logs.length - 1];
         return (
           <li key={m.id} className="rounded-md border border-zinc-200 p-3 dark:border-zinc-800">
@@ -176,13 +183,20 @@ function Metrics({ metrics }: { metrics: Metric[] }) {
               {latest.value}
               {m.unit && <span className="ml-1 text-sm font-normal text-zinc-500">{m.unit}</span>}
             </p>
-            <p className="text-xs text-zinc-500">{latest.logged_on} 時点・直近14日で{logs.length}件</p>
+            <p className="text-xs text-zinc-500">{latest.day} 時点・直近14日で{logs.length}件</p>
           </li>
         );
       })}
     </ul>
   );
 }
+
+const KIND_LABEL: Record<Learning["kind"], string> = {
+  knowledge: "知識",
+  insight: "気づき",
+  practice: "やり方",
+  reflection: "振り返り",
+};
 
 function Learnings({ learnings }: { learnings: Learning[] }) {
   if (learnings.length === 0) return <Empty />;
@@ -191,12 +205,16 @@ function Learnings({ learnings }: { learnings: Learning[] }) {
     <ul className="flex flex-col gap-4">
       {learnings.map((l) => (
         <li key={l.id} className="flex flex-col gap-1">
-          <p className="text-xs text-zinc-500">{l.learned_on}</p>
+          <p className="text-xs text-zinc-500">
+            {l.day}　{KIND_LABEL[l.kind]}
+            {l.context && `・${l.context}`}
+          </p>
           <p className="font-medium">
             {l.title}
             <PrivateMark show={l.is_private} />
           </p>
-          {l.body && <p className="whitespace-pre-wrap text-sm text-zinc-700 dark:text-zinc-300">{l.body}</p>}
+          <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
+          {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
           {l.tags.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {l.tags.map((t) => (
