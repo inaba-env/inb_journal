@@ -24,6 +24,15 @@ export type GithubActivity = {
   is_private: boolean;
 };
 
+export type LinkItem = {
+  id: string;
+  url: string;
+  title: string | null;
+  note: string | null;
+  media: string | null;
+  is_private: boolean;
+};
+
 export type NoteCategory = {
   key: string;
   label: string;
@@ -87,6 +96,10 @@ export type DayData = {
   notes: Note[];
   // 小分類ごとの件数。件数は公開してよいので、非公開の記録も含めて数える
   noteCounts: Record<string, number>;
+  // 参照したリンク・残しておきたいリンク
+  links: LinkItem[];
+  // その日のリンクの件数。件数は公開してよいので、非公開のリンクも含めて数える
+  linkCount: number;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -116,7 +129,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -162,6 +175,14 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .order("created_at"),
     // 件数を出すためだけに小分類を読む（中身は読まない）
     db.from("notes").select("kind_id").eq("day", day),
+    db
+      .from("links")
+      .select("id, url, title, note, is_private, media(title)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    // 件数を出すためだけに数える（中身は読まない）
+    db.from("links").select("id", { count: "exact", head: true }).eq("day", day),
   ]);
 
   const d = check(dayRow);
@@ -233,6 +254,18 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       (acc, n) => ({ ...acc, [n.kind_id]: (acc[n.kind_id] ?? 0) + 1 }),
       {},
     ),
+    links: (check(links) ?? []).map((l) => ({
+      id: l.id,
+      url: l.url,
+      title: l.title,
+      note: l.note,
+      media: title(l.media),
+      is_private: l.is_private,
+    })),
+    linkCount: (() => {
+      if (linkCount.error) throw new Error(linkCount.error.message);
+      return linkCount.count ?? 0;
+    })(),
   };
 }
 
