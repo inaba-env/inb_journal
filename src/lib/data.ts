@@ -45,6 +45,14 @@ export type Note = {
   is_private: boolean;
 };
 
+export type Exercise = {
+  exercise: string;
+  sets: number | null;
+  reps: number | null;
+  weight_kg: number | null;
+  note: string | null;
+};
+
 export type DayData = {
   day: string;
   mood: string | null;
@@ -52,16 +60,23 @@ export type DayData = {
   // その日の夜に寝た時刻（翌日の睡眠の記録の bed_at）
   bedTonight: string | null;
   office: { arrived_at: string | null; left_at: string | null; stay_min: number | null; note: string | null } | null;
-  workouts: {
+  activities: {
     id: string;
     type: string;
-    distance_km: number | null;
     duration_min: number | null;
     started_at: string | null;
     ended_at: string | null;
     note: string | null;
     is_private: boolean;
+    // ランのとき
+    distance_km: number | null;
+    // 筋トレのとき（種目ごと、sort_order 順）。種目の中身は本人にだけ返し、訪問者には空にする
+    exercises: Exercise[];
+    // 種目の数。数は公開してよいので訪問者にも返す
+    exercise_count: number;
   }[];
+  // その日の運動の回数。回数は公開してよいので、非公開の運動も含めて数える
+  activityCount: number;
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
   github: GithubActivity[];
@@ -99,16 +114,21 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
     db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
     db
-      .from("workouts")
-      .select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private")
+      .from("activities")
+      .select(
+        "id, type, duration_min, started_at, ended_at, note, is_private, runs(distance_km), workouts(exercise, sets, reps, weight_kg, note)",
+      )
       .eq("day", day)
-      .in("is_private", privacy),
+      .in("is_private", privacy)
+      .order("sort_order", { referencedTable: "workouts" }),
+    // 回数を出すためだけに数える（中身は読まない）
+    db.from("activities").select("id", { count: "exact", head: true }).eq("day", day),
     db
       .from("time_logs")
       .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")
@@ -152,7 +172,17 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     sleep: check(sleep),
     bedTonight: check(nextSleep)?.bed_at ?? null,
     office: check(office),
-    workouts: check(workouts) ?? [],
+    activities: (check(activities) ?? []).map(({ runs, workouts, ...a }) => ({
+      ...a,
+      // runs は1対1だが、配列で返ってきても扱えるようにする
+      distance_km: [runs].flat()[0]?.distance_km ?? null,
+      exercises: includePrivate ? (workouts as Exercise[]) : [],
+      exercise_count: workouts.length,
+    })),
+    activityCount: (() => {
+      if (activityCount.error) throw new Error(activityCount.error.message);
+      return activityCount.count ?? 0;
+    })(),
     timeLogs: (check(timeLogs) ?? []).map((t) => ({
       id: t.id,
       started_at: t.started_at,
@@ -202,25 +232,22 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   };
 }
 
-// 凡事徹底のチェックリスト（その日に続けている項目と、その日のチェック）
+// 凡事徹底のチェックリスト（その日に続けている項目と、その日の達成）
+// 達成は habit_days から読む（手のチェックに加え、activity_types の運動を記録した日も達成になる）
 export async function loadChecklist(day: string, includePrivate: boolean): Promise<ChecklistItem[]> {
   await connection();
   const db = createAdminClient();
-  const items =
-    check(
-      await db
-        .from("habits")
-        .select("id, name, habit_checks(day, done)")
-        .eq("in_checklist", true)
-        .in("is_private", includePrivate ? [true, false] : [false])
-        .lte("start_on", day)
-        .or(`end_on.is.null,end_on.gte.${day}`)
-        .eq("habit_checks.day", day)
-        .order("sort_order"),
-    ) ?? [];
-  return items.map((h) => ({
-    id: h.id,
-    name: h.name,
-    done: (h.habit_checks as { day: string; done: boolean }[]).some((c) => c.done),
-  }));
+  const [items, done] = await Promise.all([
+    db
+      .from("habits")
+      .select("id, name")
+      .eq("in_checklist", true)
+      .in("is_private", includePrivate ? [true, false] : [false])
+      .lte("start_on", day)
+      .or(`end_on.is.null,end_on.gte.${day}`)
+      .order("sort_order"),
+    db.from("habit_days").select("habit_id").eq("day", day).eq("done", true),
+  ]);
+  const doneIds = new Set((check(done) ?? []).map((d) => d.habit_id));
+  return (check(items) ?? []).map((h) => ({ id: h.id, name: h.name, done: doneIds.has(h.id) }));
 }
