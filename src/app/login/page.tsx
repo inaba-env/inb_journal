@@ -1,7 +1,10 @@
 import { Suspense } from "react";
-import { sendMagicLink } from "./actions";
+import { signIn } from "./actions";
 
-type SearchParams = Promise<{ sent?: string; error?: string }>;
+type SearchParams = Promise<{ error?: string }>;
+
+const labelClass = "text-sm text-zinc-600 dark:text-zinc-400";
+const inputClass = "rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700";
 
 export default function LoginPage({ searchParams }: { searchParams: SearchParams }) {
   return (
@@ -15,32 +18,22 @@ export default function LoginPage({ searchParams }: { searchParams: SearchParams
 }
 
 async function LoginForm({ searchParams }: { searchParams: SearchParams }) {
-  const { sent, error } = await searchParams;
+  const { error } = await searchParams;
 
   return (
-    <>
-      {sent ? (
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          ログイン用のリンクをメールで送りました。メール内のリンクを開いてください。
-        </p>
-      ) : (
-        <form action={sendMagicLink} className="flex flex-col gap-3">
-          <label className="text-sm text-zinc-600 dark:text-zinc-400" htmlFor="email">
-            メールアドレス
-          </label>
-          <input
-            id="email"
-            name="email"
-            type="email"
-            required
-            className="rounded-md border border-zinc-300 bg-transparent px-3 py-2 dark:border-zinc-700"
-          />
-          <button type="submit" className="rounded-md bg-zinc-900 px-3 py-2 text-white dark:bg-zinc-100 dark:text-zinc-900">
-            ログインリンクを送る
-          </button>
-          {error && <p className="text-sm text-red-600">リンクが無効か期限切れです。もう一度送ってください。</p>}
-        </form>
-      )}
-    </>
+    <form action={signIn} className="flex flex-col gap-3">
+      <label className={labelClass} htmlFor="email">
+        メールアドレス
+      </label>
+      <input id="email" name="email" type="email" autoComplete="username" required className={inputClass} />
+      <label className={labelClass} htmlFor="password">
+        パスワード
+      </label>
+      <input id="password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
+      <button type="submit" className="rounded-md bg-zinc-900 px-3 py-2 text-white dark:bg-zinc-100 dark:text-zinc-900">
+        ログイン
+      </button>
+      {error && <p className="text-sm text-red-600">メールアドレスかパスワードが違います。</p>}
+    </form>
   );
 }

@@ -16,7 +16,8 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | それ以外 | — | `/login` に飛ばされる |
 
 - 判定は `src/proxy.ts`（入口）と `src/lib/access.ts` の `resolveViewer`（ページ側）の2か所で行う。proxy だけに頼らない
-- 本人確認は Supabase Auth のメールリンク。`shouldCreateUser: false` なので、本人のユーザーを Supabase 側に先に作っておく
+- 本人確認は Supabase Auth のメールアドレス＋パスワード。メールのリンク方式は、標準のメール送信が1時間に2通ほどしか送れず、開く端末が違うと失敗するのでやめた
+- パスワードは `scripts/set-owner-password.sh` で付ける（`.env.local` の接続先に対して実行される）
 - IP は `x-real-ip` / `x-forwarded-for` から取る。Vercel はこれを自分で上書きするので信用できるが、ほかの環境に置くときは前段のプロキシがヘッダーを上書きするか確認すること
 
 ## データ
@@ -48,4 +49,4 @@ npm run dev
 
 - Supabase：本番プロジェクトに `supabase link` → `supabase db push`
 - Vercel：環境変数に `.env.example` の5つを設定する（`SUPABASE_SECRET_KEY` には `NEXT_PUBLIC_` を付けない）
-- Supabase Auth：Site URL と Redirect URL に本番の `/auth/confirm` を登録し、新規登録（Sign ups）を無効にする
+- Supabase Auth：新規登録（Sign ups）を無効にし、本人のユーザーを作ってから `scripts/set-owner-password.sh` でパスワードを付ける
