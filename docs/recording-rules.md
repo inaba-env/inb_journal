@@ -24,6 +24,7 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 | その目標を実施したか | `habit_checks`（運動の習慣は不要。下の「habits」参照） |
 | オフィスに着いた・出た時刻 | `office_logs` |
 | Claude Code での作業（時刻レンジ付き） | `work_sessions`（自動。下の「work_sessions」参照） |
+| GitHub での作業（コミット・PR・Issue） | `github_activities`（自動。下の「github_activities」参照） |
 | 学習・自己投資の時間（読書、開発、ジャーナリング など） | `time_logs` |
 | 読んだ・聞いたもの（本、Audible、ポッドキャスト、教材） | `media` |
 | 体重・歩数など数値で測るもの | `metrics` / `metric_logs` |
@@ -85,10 +86,15 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 
 ## work_sessions
 
-- `~/.secretary/bin/cc-timeline-sheet.py` が `ログ/YYYY-MM-DD.md`（Claude Code の日次ログ）から自動で入れる。8時・18時に launchd で実行され、同じ日の `source = 'claude_code'` の行は丸ごと置き換える
-- 書き込みには専用ユーザー `cc_writer`（`work_sessions` と `days` にだけ書ける）を使う。接続情報は `~/.secretary/.credentials/inb_journal_cc_writer.env`
+- `~/.secretary/bin/cc-timeline-db.py` が `ログ/YYYY-MM-DD.md`（Claude Code の日次ログ）から自動で入れる。8時・18時に launchd で実行され、同じ日の `source = 'claude_code'` の行は丸ごと置き換える
+- 書き込みには専用ユーザー `cc_writer`（`work_sessions`・`github_activities`・`days` にだけ書ける）を使う。接続情報は `~/.secretary/.credentials/inb_journal_cc_writer.env`
 - カテゴリは `work_categories` を正とする。カテゴリを増やすときはこのテーブルに行を足す（スクリプトは毎回ここから読む）
 - 手で足す作業は `source` を `manual` などにして、自動の置き換えに巻き込まれないようにする
+
+## github_activities
+
+- `~/.secretary/bin/gh-activity-db.py` が `gh search` で集めて自動で入れる。8時・18時に launchd で実行され（`cc-daily-summary.sh` から呼ぶ）、同じ日の行は丸ごと置き換える。手では入れない
+- 入るのは inaba-env が書いたコミット・作ったPR・マージされたPR・作ったIssue。コミットは GitHub の検索の仕様上、既定ブランチに入ったものだけで、マージコミットは除く
 
 ## time_logs
 
