@@ -79,3 +79,8 @@ export function PairStat({
     </div>
   );
 }
+
+// 欄の中でカードを縦に並べる
+export function CardStack({ children }: { children: React.ReactNode }) {
+  return <div className="flex flex-col gap-2">{children}</div>;
+}

@@ -4,7 +4,7 @@ import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
-import { Card, PairStat, PrivateMark, Section, Stat } from "./ui";
+import { Card, CardStack, PairStat, PrivateMark, Section, Stat } from "./ui";
 
 const REFLECTION_LABEL: Record<ReflectionKind, string> = {
   highlight: "ハイライト",
@@ -18,7 +18,12 @@ const REFLECTION_LABEL: Record<ReflectionKind, string> = {
   music: "今日の音楽",
 };
 
-const KIND_LABEL: Record<LearningKind, string> = { knowledge: "知識", insight: "気づき", practice: "やり方", reflection: "振り返り" };
+const KIND_LABEL: Record<LearningKind, string> = {
+  knowledge: "知識",
+  insight: "気づき",
+  practice: "やり方",
+  reflection: "振り返り",
+};
 
 // 最初に出てきた順でまとめる
 function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
@@ -26,11 +31,26 @@ function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
   for (const item of items) map.set(key(item), [...(map.get(key(item)) ?? []), item]);
   return [...map.entries()];
 }
-const WORKOUT_LABEL: Record<string, string> = { run: "ラン", walk: "ウォーク", strength: "筋トレ", stretch: "ストレッチ", other: "運動" };
+const WORKOUT_LABEL: Record<string, string> = {
+  run: "ラン",
+  walk: "ウォーク",
+  strength: "筋トレ",
+  stretch: "ストレッチ",
+  other: "運動",
+};
 const RESULT: Record<string, { label: string; className: string }> = {
-  done: { label: "できた", className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" },
-  partial: { label: "半分", className: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" },
-  not_done: { label: "できなかった", className: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300" },
+  done: {
+    label: "できた",
+    className: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+  partial: {
+    label: "半分",
+    className: "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300",
+  },
+  not_done: {
+    label: "できなかった",
+    className: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
+  },
 };
 
 export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
@@ -66,7 +86,11 @@ function NavButton({ href, label, children }: { href?: string; label: string; ch
     );
   }
   return (
-    <Link href={href} aria-label={label} className={`${base} border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900`}>
+    <Link
+      href={href}
+      aria-label={label}
+      className={`${base} border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900`}
+    >
       {children}
     </Link>
   );
@@ -74,7 +98,16 @@ function NavButton({ href, label, children }: { href?: string; label: string; ch
 
 function Chevron({ direction }: { direction: "left" | "right" }) {
   return (
-    <svg viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      viewBox="0 0 16 16"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.75"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <path d={direction === "left" ? "M10 3.5 5.5 8l4.5 4.5" : "M6 3.5 10.5 8 6 12.5"} />
     </svg>
   );
@@ -94,21 +127,40 @@ export function DayView({ data }: { data: DayData }) {
         <PairStat
           label="睡眠"
           items={[
-            { label: "起床", value: data.sleep ? formatTime(data.sleep.wake_at) : "—" },
-            { label: "就寝", value: data.bedTonight ? formatTime(data.bedTonight) : "—" },
-            { label: "睡眠時間", value: data.sleep?.duration_min != null ? formatDuration(data.sleep.duration_min) : "—" },
+            {
+              label: "起床",
+              value: data.sleep ? formatTime(data.sleep.wake_at) : "—",
+            },
+            {
+              label: "就寝",
+              value: data.bedTonight ? formatTime(data.bedTonight) : "—",
+            },
+            {
+              label: "睡眠時間",
+              value: data.sleep?.duration_min != null ? formatDuration(data.sleep.duration_min) : "—",
+            },
           ]}
           sub={data.sleep?.bed_at ? `前夜 ${formatTime(data.sleep.bed_at)} に就寝` : undefined}
         />
         <PairStat
           label="オフィス"
           items={[
-            { label: "出社", value: data.office?.arrived_at ? formatTime(data.office.arrived_at) : "—" },
-            { label: "退社", value: data.office?.left_at ? formatTime(data.office.left_at) : "—" },
+            {
+              label: "出社",
+              value: data.office?.arrived_at ? formatTime(data.office.arrived_at) : "—",
+            },
+            {
+              label: "退社",
+              value: data.office?.left_at ? formatTime(data.office.left_at) : "—",
+            },
           ]}
-          sub={data.office?.stay_min != null ? `滞在 ${formatDuration(data.office.stay_min)}` : data.office?.note ?? undefined}
+          sub={data.office?.stay_min != null ? `滞在 ${formatDuration(data.office.stay_min)}` : (data.office?.note ?? undefined)}
         />
-        <Stat label="学習" value={studyMin ? formatDuration(studyMin) : "—"} sub={data.timeLogs.length ? `${data.timeLogs.length}件` : undefined} />
+        <Stat
+          label="学習"
+          value={studyMin ? formatDuration(studyMin) : "—"}
+          sub={data.timeLogs.length ? `${data.timeLogs.length}件` : undefined}
+        />
       </div>
 
       <Card title="タイムライン">
@@ -136,53 +188,52 @@ export function DayView({ data }: { data: DayData }) {
         />
       </Card>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-3">
         <div className="flex flex-col gap-4">
           <Section title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             {data.timeLogs.length === 0 ? (
               <p className="px-1 text-sm text-zinc-500">記録なし</p>
             ) : (
-              groupBy(data.timeLogs, (t) => t.category ?? "未分類").map(([category, blocks]) => (
-                <Card
-                  key={category}
-                  title={category}
-                  icon={<span className={`size-2.5 rounded-sm ${timeColor(category)}`} />}
-                  aside={formatDuration(blocks.reduce((s, b) => s + b.duration_min, 0))}
-                >
-                  <BlockList blocks={blocks} color={timeColor} hideCategory />
-                </Card>
-              ))
+              <CardStack>
+                {groupBy(data.timeLogs, (t) => t.category ?? "未分類").map(([category, blocks]) => (
+                  <Card
+                    key={category}
+                    title={category}
+                    icon={<span className={`size-2.5 rounded-sm ${timeColor(category)}`} />}
+                    aside={formatDuration(blocks.reduce((s, b) => s + b.duration_min, 0))}
+                  >
+                    <BlockList blocks={blocks} color={timeColor} hideCategory />
+                  </Card>
+                ))}
+              </CardStack>
             )}
           </Section>
           <Section title="運動">
             {data.workouts.length === 0 ? (
               <p className="px-1 text-sm text-zinc-500">記録なし</p>
             ) : (
-              data.workouts.map((w) => (
-                <Card
-                  key={w.id}
-                  title={
-                    <>
-                      {WORKOUT_LABEL[w.type] ?? w.type}
-                      <PrivateMark show={w.is_private} />
-                    </>
-                  }
-                  aside={[w.distance_km != null && `${w.distance_km}km`, w.duration_min != null && formatDuration(w.duration_min)]
-                    .filter(Boolean)
-                    .join("・")}
-                >
-                  {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
-                </Card>
-              ))
+              <CardStack>
+                {data.workouts.map((w) => (
+                  <Card
+                    key={w.id}
+                    title={
+                      <>
+                        {WORKOUT_LABEL[w.type] ?? w.type}
+                        <PrivateMark show={w.is_private} />
+                      </>
+                    }
+                    aside={[w.distance_km != null && `${w.distance_km}km`, w.duration_min != null && formatDuration(w.duration_min)]
+                      .filter(Boolean)
+                      .join("・")}
+                  >
+                    {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
+                  </Card>
+                ))}
+              </CardStack>
             )}
           </Section>
         </div>
-        <div className="flex flex-col gap-4">
-          {data.commitmentsReviewed.length > 0 && (
-            <Card title="昨日の約束の振り返り">
-              <Commitments items={data.commitmentsReviewed} showResult />
-            </Card>
-          )}
+        <div className="flex flex-col gap-4 lg:row-span-2">
           <Section title="学び" aside={`${data.learnings.length}件`}>
             {(Object.keys(KIND_LABEL) as LearningKind[]).map((kind) => {
               const items = data.learnings.filter((l) => l.kind === kind);
@@ -195,62 +246,80 @@ export function DayView({ data }: { data: DayData }) {
                   {items.length === 0 ? (
                     <p className="px-1 text-sm text-zinc-400">なし</p>
                   ) : (
-                    items.map((l) => (
-                      <Card
-                        key={l.id}
-                        title={
-                          <span className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-                            {l.title}
-                            <PrivateMark show={l.is_private} />
-                          </span>
-                        }
-                      >
-                        <div className="-mt-2 flex flex-col gap-1">
-                          {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
-                          <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
-                          {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
-                          {l.tags.length > 0 && (
-                            <p className="flex flex-wrap gap-1 pt-1">
-                              {l.tags.map((t) => (
-                                <span key={t} className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                                  {t}
-                                </span>
-                              ))}
-                            </p>
-                          )}
-                        </div>
-                      </Card>
-                    ))
+                    <CardStack>
+                      {items.map((l) => (
+                        <Card
+                          key={l.id}
+                          title={
+                            <span className="text-base font-medium text-zinc-900 dark:text-zinc-100">
+                              {l.title}
+                              <PrivateMark show={l.is_private} />
+                            </span>
+                          }
+                        >
+                          <div className="-mt-2 flex flex-col gap-1">
+                            {(l.media || l.context) && <p className="text-xs text-zinc-500">{l.media ?? l.context}</p>}
+                            <p className="text-sm text-zinc-700 dark:text-zinc-300">{l.insight}</p>
+                            {l.next_action && <p className="text-sm text-zinc-500">→ {l.next_action}</p>}
+                            {l.tags.length > 0 && (
+                              <p className="flex flex-wrap gap-1 pt-1">
+                                {l.tags.map((t) => (
+                                  <span
+                                    key={t}
+                                    className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400"
+                                  >
+                                    {t}
+                                  </span>
+                                ))}
+                              </p>
+                            )}
+                          </div>
+                        </Card>
+                      ))}
+                    </CardStack>
                   )}
                 </div>
               );
             })}
           </Section>
-          {data.reflections.length > 0 && (
-            <Card title="振り返り">
-              <dl className="flex flex-col gap-3">
-                {(Object.keys(REFLECTION_LABEL) as ReflectionKind[])
-                  .map((kind) => [kind, data.reflections.filter((r) => r.kind === kind)] as const)
-                  .filter(([, items]) => items.length > 0)
-                  .map(([kind, items]) => (
-                    <div key={kind}>
-                      <dt className="text-xs text-zinc-500">{REFLECTION_LABEL[kind]}</dt>
-                      {items.map((r) => (
-                        <dd key={r.id} className="text-sm">
-                          ・{r.content}
-                          {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
-                          <PrivateMark show={r.is_private} />
-                        </dd>
-                      ))}
-                    </div>
-                  ))}
-              </dl>
-            </Card>
-          )}
-          {data.commitmentsMade.length > 0 && (
-            <Card title="明日に向けて">
-              <Commitments items={data.commitmentsMade} />
-            </Card>
+        </div>
+        <div className="flex flex-col gap-4 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
+          {(data.commitmentsReviewed.length > 0 || data.reflections.length > 0 || data.commitmentsMade.length > 0) && (
+            <Section title="振り返りと約束">
+              <CardStack>
+                {data.commitmentsReviewed.length > 0 && (
+                  <Card title="昨日の約束の振り返り">
+                    <Commitments items={data.commitmentsReviewed} showResult />
+                  </Card>
+                )}
+                {data.reflections.length > 0 && (
+                  <Card title="振り返り">
+                    <dl className="flex flex-col gap-3">
+                      {(Object.keys(REFLECTION_LABEL) as ReflectionKind[])
+                        .map((kind) => [kind, data.reflections.filter((r) => r.kind === kind)] as const)
+                        .filter(([, items]) => items.length > 0)
+                        .map(([kind, items]) => (
+                          <div key={kind}>
+                            <dt className="text-xs text-zinc-500">{REFLECTION_LABEL[kind]}</dt>
+                            {items.map((r) => (
+                              <dd key={r.id} className="text-sm">
+                                ・{r.content}
+                                {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
+                                <PrivateMark show={r.is_private} />
+                              </dd>
+                            ))}
+                          </div>
+                        ))}
+                    </dl>
+                  </Card>
+                )}
+                {data.commitmentsMade.length > 0 && (
+                  <Card title="明日に向けて">
+                    <Commitments items={data.commitmentsMade} />
+                  </Card>
+                )}
+              </CardStack>
+            </Section>
           )}
         </div>
       </div>
