@@ -35,7 +35,7 @@ export function Timeline({
   return (
     <div className="-mr-4 overflow-x-auto pr-4 sm:mr-0 sm:overflow-visible sm:pr-0">
       <div className="flex min-w-[720px] flex-col gap-1.5 sm:min-w-0">
-        <div className="relative ml-16 h-4 text-[10px] text-zinc-500 sm:ml-24">
+        <div className="relative ml-16 h-4 font-mono text-[10px] text-faint sm:ml-24">
           {HOURS.map((h) => (
             <span key={h} className="absolute -translate-x-1/2 tabular-nums" style={{ left: `${(h / 24) * 100}%` }}>
               {h}
@@ -43,24 +43,24 @@ export function Timeline({
           ))}
         </div>
         <div className="flex">
-          <div className="sticky left-0 z-30 flex w-16 shrink-0 flex-col bg-background sm:static sm:w-24 sm:bg-transparent">
+          <div className="sticky left-0 z-30 flex w-16 shrink-0 flex-col bg-surface sm:static sm:w-24 sm:bg-transparent">
             {lanes.map((lane) => (
-              <span key={lane.title} className="pt-1.5 pr-2 text-xs leading-tight text-zinc-500" style={{ height: lane.height }}>
+              <span key={lane.title} className="pt-1.5 pr-2 text-xs leading-tight font-medium text-muted" style={{ height: lane.height }}>
                 {lane.title}
               </span>
             ))}
-            <span className="pt-1.5 pr-2 text-xs leading-tight text-zinc-500" style={{ height: githubHeight }}>
+            <span className="pt-1.5 pr-2 text-xs leading-tight font-medium text-muted" style={{ height: githubHeight }}>
               GitHub
             </span>
           </div>
-          <div className="relative flex-1 rounded-md bg-zinc-100 dark:bg-zinc-900">
+          <div className="relative flex-1 rounded-xl bg-surface-2/70">
             {HOURS.slice(1, -1).map((h) => (
-              <span key={h} className="absolute inset-y-0 w-px bg-zinc-200 dark:bg-zinc-800" style={{ left: `${(h / 24) * 100}%` }} />
+              <span key={h} className="absolute inset-y-0 w-px bg-line" style={{ left: `${(h / 24) * 100}%` }} />
             ))}
             {markers.map((m) => (
               <span
                 key={m.label}
-                className="absolute inset-y-0 w-0.5 bg-zinc-900 dark:bg-zinc-100"
+                className="absolute inset-y-0 w-px bg-accent"
                 style={{ left: `${(minutesOfDay(m.at, day) / 1440) * 100}%` }}
               />
             ))}
@@ -82,7 +82,15 @@ export function Timeline({
           </div>
         </div>
         {markers.length > 0 && (
-          <p className="ml-16 text-xs text-zinc-500 sm:ml-24">{markers.map((m) => `${m.label} ${formatTime(m.at)}`).join("　")}</p>
+          <ul className="ml-16 flex flex-wrap gap-1.5 pt-1 text-xs sm:ml-24">
+            {markers.map((m) => (
+              <li key={m.label} className="flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-0.5 text-accent">
+                <span className="h-2.5 w-px bg-accent" />
+                {m.label}
+                <span className="font-mono font-medium tabular-nums">{formatTime(m.at)}</span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </div>
@@ -125,7 +133,7 @@ function Block({
   return (
     <span
       tabIndex={0}
-      className={`group absolute rounded-sm opacity-90 outline-none hover:z-10 hover:opacity-100 focus:z-10 focus:opacity-100 ${color(b.category)}`}
+      className={`group absolute rounded-md opacity-85 outline-none ring-accent/40 focus-visible:ring-2 hover:z-10 hover:opacity-100 focus:z-10 focus:opacity-100 ${color(b.category)}`}
       style={{
         left: `${(start / 1440) * 100}%`,
         width: `max(3px, ${((end - start) / 1440) * 100}%)`,
@@ -135,7 +143,7 @@ function Block({
     >
       <span
         className={
-          "pointer-events-none absolute z-20 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+          "pointer-events-none absolute z-20 hidden w-64 max-w-[70vw] rounded-xl bg-ink px-3 py-2 text-xs leading-relaxed text-background shadow-lg group-hover:block group-focus:block " +
           (tooltipBelow ? "top-full mt-1.5 " : "bottom-full mb-1.5 ") +
           (start > 1440 * 0.65 ? "right-0" : start < 1440 * 0.35 ? "left-0" : "left-1/2 -translate-x-1/2")
         }
@@ -162,7 +170,7 @@ function Tick({ a, at }: { a: GithubActivity; at: number }) {
     >
       <span
         className={
-          "pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+          "pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-64 max-w-[70vw] rounded-xl bg-ink px-3 py-2 text-xs leading-relaxed text-background shadow-lg group-hover:block group-focus:block " +
           (at > 1440 * 0.65 ? "right-0" : at < 1440 * 0.35 ? "left-0" : "left-1/2 -translate-x-1/2")
         }
       >
@@ -187,20 +195,20 @@ export function BlockList({
   color: (c: string | null) => string;
   hideCategory?: boolean;
 }) {
-  if (blocks.length === 0) return <p className="text-sm text-zinc-500">記録なし</p>;
+  if (blocks.length === 0) return <p className="text-sm text-faint">記録なし</p>;
   return (
     <ul className="flex flex-col gap-1.5 text-sm">
       {blocks.map((b) => (
         <li key={b.id} className={`grid items-baseline gap-2 ${hideCategory ? "grid-cols-[6.5rem_1fr]" : "grid-cols-[6.5rem_auto_1fr]"}`}>
-          <span className="tabular-nums text-zinc-500">
+          <span className="font-mono text-xs text-faint tabular-nums">
             {formatTime(b.started_at)}–{formatTime(b.ended_at)}
           </span>
-          {!hideCategory && <span className={`size-2.5 translate-y-[-1px] self-center rounded-sm ${color(b.category)}`} />}
+          {!hideCategory && <span className={`size-2 translate-y-[-1px] self-center rounded-full ${color(b.category)}`} />}
           <span className="min-w-0">
-            {!hideCategory && <span className="text-zinc-500">{b.category ?? "未分類"}　</span>}
+            {!hideCategory && <span className="text-muted">{b.category ?? "未分類"}　</span>}
             {b.label && <span>{b.label}</span>}
-            {b.detail && <span className="text-zinc-500">（{b.detail}）</span>}
-            <span className="ml-2 text-xs text-zinc-400">{formatDuration(b.duration_min)}</span>
+            {b.detail && <span className="text-muted">（{b.detail}）</span>}
+            <span className="ml-2 font-mono text-[11px] text-faint">{formatDuration(b.duration_min)}</span>
           </span>
         </li>
       ))}

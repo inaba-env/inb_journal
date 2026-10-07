@@ -1,12 +1,13 @@
 import Link from "next/link";
-import type { DayData, Exercise } from "@/lib/data";
+import type { ChecklistItem, DayData, Exercise } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
 import { GithubSection } from "./github";
 import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
-import { Card, CardStack, Empty, HiddenNote, PairStat, PrivateMark, Section, Stat } from "./ui";
+import { Bonji } from "./bonji";
+import { Card, CardStack, EmptyCard, HiddenNote, Metric, PrivateMark, Section } from "./ui";
 
 // 最初に出てきた順でまとめる
 function groupBy<T>(items: T[], key: (item: T) => string): [string, T[]][] {
@@ -48,14 +49,46 @@ function activityStats(a: DayData["activities"][number]): string {
     .join("・");
 }
 
-export function DayHeader({ day, today, mood }: { day: string; today: string; mood: string | null }) {
+const WEEKDAY_NAMES = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
+
+export function DayHeader({
+  day,
+  today,
+  mood,
+  isOwner,
+}: {
+  day: string;
+  today: string;
+  mood: string | null;
+  isOwner: boolean;
+}) {
+  const d = new Date(`${day}T00:00:00Z`);
   return (
-    <header className="flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <h1 className="text-xl font-semibold sm:text-2xl">{formatDate(day)}</h1>
-        {mood && <p className="text-sm text-zinc-500">気分：{mood}</p>}
+    <header className="rise flex flex-wrap items-end justify-between gap-x-6 gap-y-4 pt-2">
+      <div className="flex flex-col gap-2">
+        <p className="flex items-center gap-2 text-sm font-medium text-muted">
+          <span className="font-mono tabular-nums">{d.getUTCFullYear()}</span>
+          <span>{WEEKDAY_NAMES[d.getUTCDay()]}</span>
+          {day === today && <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs font-bold text-accent">今日</span>}
+        </p>
+        <h1 className="text-4xl leading-none font-bold tracking-tight sm:text-5xl" aria-label={formatDate(day)}>
+          <span className="font-mono tabular-nums">{d.getUTCMonth() + 1}</span>
+          <span className="mx-0.5 text-[0.6em] text-muted">月</span>
+          <span className="font-mono tabular-nums">{d.getUTCDate()}</span>
+          <span className="ml-0.5 text-[0.6em] text-muted">日</span>
+        </h1>
+        {(mood || isOwner) && (
+          <p className="flex flex-wrap items-center gap-2 pt-1 text-sm text-muted">
+            {mood && (
+              <span className="rounded-full border border-line bg-surface px-3 py-1">
+                <span className="text-faint">気分</span>　{mood}
+              </span>
+            )}
+            {isOwner && <span className="text-xs text-faint">本人として閲覧中（非公開の記録も表示）</span>}
+          </p>
+        )}
       </div>
-      <nav className="flex items-center gap-1.5">
+      <nav className="flex items-center rounded-full border border-line bg-surface p-1 shadow-card">
         <NavButton href={`/days/${addDays(day, -1)}`} label="前の日">
           <Chevron direction="left" />
         </NavButton>
@@ -72,10 +105,10 @@ export function DayHeader({ day, today, mood }: { day: string; today: string; mo
 
 // 使えないときも消さずに薄く出し、ボタンの位置が日によって変わらないようにする
 function NavButton({ href, label, children }: { href?: string; label: string; children: React.ReactNode }) {
-  const base = "flex h-8 min-w-8 items-center justify-center rounded-md border px-2 text-sm";
+  const base = "flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-sm font-medium";
   if (!href) {
     return (
-      <span aria-label={label} aria-disabled className={`${base} border-zinc-100 text-zinc-300 dark:border-zinc-900 dark:text-zinc-700`}>
+      <span aria-label={label} aria-disabled className={`${base} text-faint/50`}>
         {children}
       </span>
     );
@@ -84,7 +117,7 @@ function NavButton({ href, label, children }: { href?: string; label: string; ch
     <Link
       href={href}
       aria-label={label}
-      className={`${base} border-zinc-200 hover:bg-zinc-100 dark:border-zinc-800 dark:hover:bg-zinc-900`}
+      className={`${base} text-ink transition hover:bg-surface-2 active:scale-[0.96]`}
     >
       {children}
     </Link>
@@ -108,7 +141,7 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-export function DayView({ data }: { data: DayData }) {
+export function DayView({ data, checklist }: { data: DayData; checklist: ChecklistItem[] }) {
   // 学びは2列目、それ以外の大分類（振り返り・感謝 など）は3列目に並べる
   const learning = data.noteCategories.find((c) => c.key === "learning");
   const others = data.noteCategories.filter((c) => c.key !== "learning");
@@ -120,90 +153,92 @@ export function DayView({ data }: { data: DayData }) {
   ];
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="grid gap-2 sm:grid-cols-3">
-        <PairStat
-          label="睡眠"
-          items={[
-            {
-              label: "起床",
-              value: data.sleep?.wake_at ? formatTime(data.sleep.wake_at) : "—",
-            },
-            {
-              label: "就寝",
-              value: data.bedTonight ? formatTime(data.bedTonight) : "—",
-            },
-            {
-              label: "睡眠時間",
-              value: data.sleep?.duration_min != null ? formatDuration(data.sleep.duration_min) : "—",
-            },
-          ]}
-          sub={data.sleep?.bed_at ? `前夜 ${formatTime(data.sleep.bed_at)} に就寝` : undefined}
-        />
-        <PairStat
-          label="オフィス"
-          items={[
-            {
-              label: "出社",
-              value: data.office?.arrived_at ? formatTime(data.office.arrived_at) : "—",
-            },
-            {
-              label: "退社",
-              value: data.office?.left_at ? formatTime(data.office.left_at) : "—",
-            },
-          ]}
-          sub={data.office?.stay_min != null ? `滞在 ${formatDuration(data.office.stay_min)}` : (data.office?.note ?? undefined)}
-        />
-        <Stat
-          label="学習"
-          value={studyMin ? formatDuration(studyMin) : "—"}
-          sub={data.timeLogs.length ? `${data.timeLogs.length}件` : undefined}
-        />
+    <div className="flex flex-col gap-6">
+      <div className="grid gap-3 lg:grid-cols-12">
+        {checklist.length > 0 && (
+          <div className="rise flex lg:col-span-5" style={{ "--i": 1 } as React.CSSProperties}>
+            <Bonji items={checklist} className="flex-1" />
+          </div>
+        )}
+        <div
+          className={`rise grid grid-cols-2 gap-3 ${checklist.length > 0 ? "lg:col-span-7" : "lg:col-span-12 lg:grid-cols-4"}`}
+          style={{ "--i": 2 } as React.CSSProperties}
+        >
+          <Metric
+            label="睡眠"
+            className="col-span-2"
+            items={[
+              { label: "起床", value: data.sleep?.wake_at ? formatTime(data.sleep.wake_at) : null },
+              { label: "就寝", value: data.bedTonight ? formatTime(data.bedTonight) : null },
+              {
+                label: "睡眠時間",
+                value: data.sleep?.duration_min != null ? formatDuration(data.sleep.duration_min) : null,
+              },
+            ]}
+            sub={data.sleep?.bed_at ? `前夜 ${formatTime(data.sleep.bed_at)} に就寝` : undefined}
+          />
+          <Metric
+            label="オフィス"
+            items={[
+              { label: "出社", value: data.office?.arrived_at ? formatTime(data.office.arrived_at) : null },
+              { label: "退社", value: data.office?.left_at ? formatTime(data.office.left_at) : null },
+            ]}
+            sub={data.office?.stay_min != null ? `滞在 ${formatDuration(data.office.stay_min)}` : (data.office?.note ?? undefined)}
+          />
+          <Metric
+            label="学習"
+            items={[{ label: "合計", value: studyMin ? formatDuration(studyMin) : null }]}
+            sub={data.timeLogs.length ? `${data.timeLogs.length}件の記録` : undefined}
+          />
+        </div>
       </div>
 
-      <Card title="タイムライン">
-        <Timeline
-          day={data.day}
-          timeLogs={data.timeLogs}
-          activities={data.activities.flatMap((w) =>
-            w.started_at && w.ended_at
-              ? [
-                  {
-                    id: w.id,
-                    started_at: w.started_at,
-                    ended_at: w.ended_at,
-                    duration_min: Math.round((Date.parse(w.ended_at) - Date.parse(w.started_at)) / 60000),
-                    category: ACTIVITY_LABEL[w.type] ?? w.type,
-                    label:
-                      w.distance_km != null
-                        ? `${w.distance_km}km`
-                        : w.exercises.map((e) => e.exercise).join("・") || exerciseCount(w.exercise_count),
-                    detail: w.note,
-                    is_private: w.is_private,
-                  },
-                ]
-              : [],
-          )}
-          workSessions={data.workSessions}
-          github={data.github}
-          markers={markers}
-        />
-      </Card>
+      <div className="rise" style={{ "--i": 3 } as React.CSSProperties}>
+        <Card title="タイムライン">
+          <Timeline
+            day={data.day}
+            timeLogs={data.timeLogs}
+            activities={data.activities.flatMap((w) =>
+              w.started_at && w.ended_at
+                ? [
+                    {
+                      id: w.id,
+                      started_at: w.started_at,
+                      ended_at: w.ended_at,
+                      duration_min: Math.round((Date.parse(w.ended_at) - Date.parse(w.started_at)) / 60000),
+                      category: ACTIVITY_LABEL[w.type] ?? w.type,
+                      label:
+                        w.distance_km != null
+                          ? `${w.distance_km}km`
+                          : w.exercises.map((e) => e.exercise).join("・") || exerciseCount(w.exercise_count),
+                      detail: w.note,
+                      is_private: w.is_private,
+                    },
+                  ]
+                : [],
+            )}
+            workSessions={data.workSessions}
+            github={data.github}
+            markers={markers}
+          />
+        </Card>
+      </div>
 
-      <div className="grid items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-3">
-        <div className="flex flex-col gap-4">
+      <div
+        className="rise grid items-start gap-x-5 gap-y-8 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-3"
+        style={{ "--i": 4 } as React.CSSProperties}
+      >
+        <div className="flex flex-col gap-8">
           <Section title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             {data.timeLogs.length === 0 ? (
-              <Card>
-                <Empty />
-              </Card>
+              <EmptyCard />
             ) : (
               <CardStack>
                 {groupBy(data.timeLogs, (t) => t.category ?? "未分類").map(([category, blocks]) => (
                   <Card
                     key={category}
                     title={category}
-                    icon={<span className={`size-2.5 rounded-sm ${timeColor(category)}`} />}
+                    icon={<span className={`size-2.5 rounded-full ${timeColor(category)}`} />}
                     aside={formatDuration(blocks.reduce((s, b) => s + b.duration_min, 0))}
                   >
                     <BlockList blocks={blocks} color={timeColor} hideCategory />
@@ -214,9 +249,7 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
           <Section title="運動" count={data.activityCount}>
             {data.activityCount === 0 ? (
-              <Card>
-                <Empty />
-              </Card>
+              <EmptyCard />
             ) : (
               <CardStack>
                 {data.activities.map((w) => (
@@ -237,14 +270,17 @@ export function DayView({ data }: { data: DayData }) {
                       .join("・")}
                   >
                     {w.exercises.length > 0 && (
-                      <ul className="-mt-1 space-y-0.5 text-sm text-zinc-700 dark:text-zinc-300">
+                      <ul className="-mt-1 flex flex-col gap-1 text-sm text-ink/80">
                         {w.exercises.map((e, i) => (
-                          <li key={i}>{formatExercise(e)}</li>
+                          <li key={i} className="flex gap-2">
+                            <span className="mt-[0.6em] size-1 shrink-0 rounded-full bg-faint" />
+                            {formatExercise(e)}
+                          </li>
                         ))}
                       </ul>
                     )}
-                    {activityStats(w) && <p className="-mt-1 text-sm tabular-nums text-zinc-500">{activityStats(w)}</p>}
-                    {w.note && <p className="-mt-1 text-sm text-zinc-700 dark:text-zinc-300">{w.note}</p>}
+                    {activityStats(w) && <p className="-mt-1 font-mono text-xs text-muted tabular-nums">{activityStats(w)}</p>}
+                    {w.note && <p className="-mt-1 text-sm leading-relaxed text-muted">{w.note}</p>}
                   </Card>
                 ))}
                 {data.activities.length < data.activityCount && (
@@ -257,10 +293,10 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
           <GithubSection activities={data.github} />
         </div>
-        <div className="flex flex-col gap-4 lg:row-span-2">
+        <div className="flex flex-col gap-8 lg:row-span-2">
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
-        <div className="flex flex-col gap-4 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
+        <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
           {others.map((c) => (
             <NotesSection key={c.key} category={c} notes={data.notes} counts={data.noteCounts} />
           ))}

@@ -1,26 +1,71 @@
 @import "tailwindcss";
 
+/*
+ * 色はすべてここのトークンから使う（画面側で zinc などを直接書かない）。
+ * 地は少し青みのある灰、アクセントは深い緑の1色だけ。カテゴリの色（categories.ts）はデータの色なので別扱い。
+ * 角丸の決まり：カード 16px（rounded-2xl）、ボタン・チップ・件数は丸（rounded-full）、帯などの中身は 6px（rounded-md）
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --bg: #f3f4f1;
+  --surface: #fcfcfb;
+  --surface-2: #eceeea;
+  --line: #e1e4de;
+  --ink: #1b1f1d;
+  --muted: #5f6762;
+  --faint: #98a09b;
+  --accent: #1f6b52;
+  --accent-soft: #dcebe4;
+  --shadow: 0 1px 2px rgb(31 50 42 / 0.04), 0 8px 24px -12px rgb(31 50 42 / 0.12);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #0f1211;
+    --surface: #171b19;
+    --surface-2: #1f2421;
+    --line: #272d2a;
+    --ink: #e8ece9;
+    --muted: #a0a9a4;
+    --faint: #69726d;
+    --accent: #5cc49b;
+    --accent-soft: #1b3229;
+    --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -12px rgb(0 0 0 / 0.5);
   }
 }
 
+@theme inline {
+  --color-background: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --shadow-card: var(--shadow);
+  --font-sans: var(--font-geist-sans), var(--font-zen-kaku), "Hiragino Sans", sans-serif;
+  --font-mono: var(--font-geist-mono), var(--font-zen-kaku), monospace;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-feature-settings: "palt";
+}
+
+/* 読み込み時に上から順にふわっと出す。順番は style の --i で渡す */
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 70ms);
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }

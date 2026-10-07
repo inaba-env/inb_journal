@@ -1,5 +1,5 @@
 import type { Note, NoteCategory } from "@/lib/data";
-import { Card, CardStack, Empty, HiddenNote, PrivateMark, Section, SubHeading } from "./ui";
+import { Card, CardStack, EmptyCard, HiddenNote, PrivateMark, Section, SubHeading } from "./ui";
 
 // 大分類＝セクション、小分類＝小見出し、記録＝カード。学び・振り返り・感謝をすべてこの1つで描く。
 // 件数は非公開の記録も含めた総数（counts）で出し、見えない分は「非公開 N件」と添える
@@ -31,11 +31,7 @@ export function NotesSection({ category, notes, counts }: { category: NoteCatego
 
 function KindCards({ notes, count, hideContent }: { notes: Note[]; count: number; hideContent: boolean }) {
   if (count === 0) {
-    return (
-      <Card>
-        <Empty />
-      </Card>
-    );
+    return <EmptyCard />;
   }
   return (
     <CardStack>
@@ -54,34 +50,43 @@ function KindCards({ notes, count, hideContent }: { notes: Note[]; count: number
 function NoteCard({ note: n, hidePrivateMark }: { note: Note; hidePrivateMark: boolean }) {
   const mark = <PrivateMark show={n.is_private && !hidePrivateMark} />;
   return (
-    <Card
-      title={
-        n.title ? (
-          <span className="text-base font-medium text-zinc-900 dark:text-zinc-100">
-            {n.title}
-            {mark}
-          </span>
-        ) : undefined
-      }
-    >
-      <div className={`flex flex-col gap-1 ${n.title ? "-mt-2" : ""}`}>
-        {(n.media || n.context) && <p className="text-xs text-zinc-500">{[n.media, n.context].filter(Boolean).join("・")}</p>}
-        <p className="text-sm text-zinc-700 dark:text-zinc-300">
-          {n.body}
-          {!n.title && mark}
+    <article className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-5 shadow-card">
+      {(n.media || n.context) && <p className="text-xs text-faint">{[n.media, n.context].filter(Boolean).join("・")}</p>}
+      {n.title && (
+        <h3 className="text-[15px] leading-snug font-bold">
+          {n.title}
+          {mark}
+        </h3>
+      )}
+      <p className="text-sm leading-relaxed whitespace-pre-line text-ink/80">
+        {n.body}
+        {!n.title && mark}
+      </p>
+      {(n.reason || n.next_action) && (
+        <dl className="mt-1 flex flex-col gap-1.5 border-l-2 border-accent-soft pl-3 text-sm leading-relaxed">
+          {n.reason && (
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-xs leading-6 font-bold text-muted">理由</dt>
+              <dd className="text-muted">{n.reason}</dd>
+            </div>
+          )}
+          {n.next_action && (
+            <div className="flex gap-2">
+              <dt className="shrink-0 text-xs leading-6 font-bold text-accent">次に</dt>
+              <dd className="text-ink/80">{n.next_action}</dd>
+            </div>
+          )}
+        </dl>
+      )}
+      {n.tags.length > 0 && (
+        <p className="flex flex-wrap gap-1.5 pt-1">
+          {n.tags.map((t) => (
+            <span key={t} className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs text-muted">
+              #{t}
+            </span>
+          ))}
         </p>
-        {n.reason && <p className="text-sm text-zinc-500">理由：{n.reason}</p>}
-        {n.next_action && <p className="text-sm text-zinc-500">→ {n.next_action}</p>}
-        {n.tags.length > 0 && (
-          <p className="flex flex-wrap gap-1 pt-1">
-            {n.tags.map((t) => (
-              <span key={t} className="rounded bg-zinc-100 px-1.5 text-xs text-zinc-600 dark:bg-zinc-900 dark:text-zinc-400">
-                {t}
-              </span>
-            ))}
-          </p>
-        )}
-      </div>
-    </Card>
+      )}
+    </article>
   );
 }

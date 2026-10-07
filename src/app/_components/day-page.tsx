@@ -4,7 +4,6 @@ import { connection } from "next/server";
 import { resolveViewer } from "@/lib/access";
 import { isValidDate, loadChecklist, loadDay, todayJst } from "@/lib/data";
 import { DayHeader, DayView } from "./day-view";
-import { Bonji } from "./bonji";
 
 // ホーム（day 省略＝今日）と /days/[date] の共通の中身
 export async function DayPage({ day: requested }: { day?: string }) {
@@ -21,14 +20,26 @@ export async function DayPage({ day: requested }: { day?: string }) {
 
   return (
     <>
-      <DayHeader day={day} today={today} mood={data.mood} />
-      <Bonji items={checklist} />
-      <DayView data={data} />
-      {isOwner && <p className="text-right text-xs text-zinc-400">本人として閲覧中（非公開の記録も表示）</p>}
+      <DayHeader day={day} today={today} mood={data.mood} isOwner={isOwner} />
+      <DayView data={data} checklist={checklist} />
     </>
   );
 }
 
+// 読み込み中は、出来上がりと同じ形の枠を薄く出しておく
 export function Loading() {
-  return <p className="text-sm text-zinc-500">読み込み中…</p>;
+  const block = "animate-pulse rounded-2xl bg-surface-2";
+  return (
+    <div className="flex flex-col gap-6" aria-label="読み込み中">
+      <div className="flex flex-col gap-2 pt-2">
+        <div className="h-4 w-28 animate-pulse rounded-full bg-surface-2" />
+        <div className="h-12 w-48 animate-pulse rounded-full bg-surface-2" />
+      </div>
+      <div className="grid gap-3 lg:grid-cols-12">
+        <div className={`${block} h-44 lg:col-span-5`} />
+        <div className={`${block} h-44 lg:col-span-7`} />
+      </div>
+      <div className={`${block} h-56`} />
+    </div>
+  );
 }
