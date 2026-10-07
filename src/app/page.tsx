@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import { resolveViewer } from "@/lib/access";
 import { addDays, loadDashboard, type Habit, type Learning, type Metric, type SleepLog } from "@/lib/data";
@@ -16,6 +17,7 @@ export default function Home() {
 
 // 閲覧者の判定に Cookie と IP（リクエスト時の情報）を使うので、ここから下はリクエストごとに描画する
 async function Dashboard() {
+  await connection();
   const viewer = await resolveViewer(await headers());
   if (viewer.kind === "none") redirect("/login");
 
