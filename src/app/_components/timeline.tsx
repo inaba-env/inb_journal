@@ -1,24 +1,27 @@
-import type { TimeBlock } from "@/lib/data";
+import type { GithubActivity, TimeBlock } from "@/lib/data";
 import { formatDuration, formatTime, minutesOfDay } from "@/lib/format";
 import { timeColor, workColor } from "./categories";
+import { GITHUB_KIND } from "./github";
 
 type Marker = { at: string; label: string };
 
 const HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
-// 0:00〜24:00 の帯に、学習・運動・Claude Code を段に分けて並べる。
+// 0:00〜24:00 の帯に、学習・運動・Claude Code・GitHub を段に分けて並べる。
 // 背景・時刻の縦線・起床などの線は全段で1枚につなげ、段の境目に線は引かない
 export function Timeline({
   day,
   timeLogs,
   workouts,
   workSessions,
+  github,
   markers,
 }: {
   day: string;
   timeLogs: TimeBlock[];
   workouts: TimeBlock[];
   workSessions: TimeBlock[];
+  github: GithubActivity[];
   markers: Marker[];
 }) {
   const lanes = [
@@ -26,6 +29,7 @@ export function Timeline({
     { title: "運動", placed: stack(workouts, day), color: () => "bg-emerald-500" },
     { title: "Claude Code", placed: stack(workSessions, day), color: workColor },
   ].map((lane) => ({ ...lane, height: Math.max(1, ...lane.placed.map((p) => p.row + 1)) * ROW_PX + 8 }));
+  const githubHeight = ROW_PX + 8;
 
   // スマホでは幅が足りないので、帯を広く描いて横スクロールにする（段の名前は左に固定）
   return (
@@ -45,6 +49,9 @@ export function Timeline({
                 {lane.title}
               </span>
             ))}
+            <span className="pt-1.5 pr-2 text-xs leading-tight text-zinc-500" style={{ height: githubHeight }}>
+              GitHub
+            </span>
           </div>
           <div className="relative flex-1 rounded-md bg-zinc-100 dark:bg-zinc-900">
             {HOURS.slice(1, -1).map((h) => (
@@ -64,6 +71,14 @@ export function Timeline({
                 ))}
               </div>
             ))}
+            <div className="relative" style={{ height: githubHeight }}>
+              {/* コミットを先に描き、PR・Issue を上に重ねる */}
+              {[...github]
+                .sort((a, b) => Number(b.kind === "commit") - Number(a.kind === "commit"))
+                .map((a) => (
+                  <Tick key={a.id} a={a} at={minutesOfDay(a.occurred_at, day)} />
+                ))}
+            </div>
           </div>
         </div>
         {markers.length > 0 && (
@@ -131,6 +146,32 @@ function Block({
         {b.category && <span className="block opacity-70">{b.category}</span>}
         {b.label && <span className="block">{b.label}</span>}
         {b.detail && <span className="block opacity-70">{b.detail}</span>}
+      </span>
+    </span>
+  );
+}
+
+// GitHub の出来事1件。時刻の位置に細い縦線を引き、マウスを乗せると内容を出す
+function Tick({ a, at }: { a: GithubActivity; at: number }) {
+  const kind = GITHUB_KIND[a.kind];
+  return (
+    <span
+      tabIndex={0}
+      className={`group absolute w-0.5 rounded-sm opacity-80 outline-none hover:z-10 hover:opacity-100 focus:z-10 focus:opacity-100 ${kind.color}`}
+      style={{ left: `${(at / 1440) * 100}%`, top: 4, height: ROW_PX - 4 }}
+    >
+      <span
+        className={
+          "pointer-events-none absolute bottom-full z-20 mb-1.5 hidden w-64 max-w-[70vw] rounded-md bg-zinc-900 px-2.5 py-1.5 text-xs leading-relaxed text-white shadow-lg group-hover:block group-focus:block dark:bg-zinc-100 dark:text-zinc-900 " +
+          (at > 1440 * 0.65 ? "right-0" : at < 1440 * 0.35 ? "left-0" : "left-1/2 -translate-x-1/2")
+        }
+      >
+        <span className="block tabular-nums opacity-70">
+          {formatTime(a.occurred_at)}　{kind.label}
+          {a.number != null && ` #${a.number}`}
+        </span>
+        <span className="block opacity-70">{a.repo}</span>
+        <span className="block">{a.title}</span>
       </span>
     </span>
   );

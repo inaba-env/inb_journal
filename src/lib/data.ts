@@ -13,6 +13,17 @@ export type TimeBlock = {
   is_private: boolean;
 };
 
+export type GithubActivity = {
+  id: string;
+  occurred_at: string;
+  kind: "commit" | "pr_opened" | "pr_merged" | "issue_opened";
+  repo: string;
+  number: number | null;
+  title: string;
+  url: string;
+  is_private: boolean;
+};
+
 export type NoteCategory = {
   key: string;
   label: string;
@@ -53,6 +64,7 @@ export type DayData = {
   }[];
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
+  github: GithubActivity[];
   // 画面に出す大分類（学び・振り返り・感謝 など）と、その日の記録
   noteCategories: NoteCategory[];
   notes: Note[];
@@ -87,7 +99,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, categories, notes, noteKinds] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, workouts, timeLogs, workSessions, github, categories, notes, noteKinds] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -109,6 +121,12 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .eq("day", day)
       .in("is_private", privacy)
       .order("started_at"),
+    db
+      .from("github_activities")
+      .select("id, occurred_at, kind, repo, number, title, url, is_private")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("occurred_at"),
     db
       .from("note_categories")
       .select("key, label, content_private, show_kind_headings, note_kinds(id, label, show_when_empty, sort_order)")
@@ -155,6 +173,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       detail: w.subject,
       is_private: w.is_private,
     })),
+    github: (check(github) ?? []) as GithubActivity[],
     noteCategories: (check(categories) ?? []).map((c) => ({
       key: c.key,
       label: c.label,

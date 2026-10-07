@@ -3,6 +3,7 @@ import type { DayData } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
+import { GithubSection } from "./github";
 import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
 import { Card, CardStack, Empty, PairStat, PrivateMark, Section, Stat } from "./ui";
@@ -155,6 +156,7 @@ export function DayView({ data }: { data: DayData }) {
               : [],
           )}
           workSessions={data.workSessions}
+          github={data.github}
           markers={markers}
         />
       </Card>
@@ -207,6 +209,7 @@ export function DayView({ data }: { data: DayData }) {
               </CardStack>
             )}
           </Section>
+          <GithubSection activities={data.github} />
         </div>
         <div className="flex flex-col gap-4 lg:row-span-2">
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
