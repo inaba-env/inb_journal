@@ -2,9 +2,9 @@ import "server-only";
 import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type LearningKind = "knowledge" | "insight" | "practice" | "reflection";
+export type LearningKind = "knowledge" | "insight" | "practice";
 export type ReflectionKind =
-  "highlight" | "thought" | "gratitude" | "quiet_good" | "went_well" | "went_badly" | "carried_over" | "catch_up" | "music";
+  "highlight" | "thought" | "gratitude" | "quiet_good" | "went_well" | "went_badly" | "carried_over" | "lesson" | "catch_up" | "music";
 
 export type TimeBlock = {
   id: string;
@@ -34,6 +34,7 @@ export type Reflection = {
   kind: ReflectionKind;
   content: string;
   reason: string | null;
+  media: string | null;
   is_private: boolean;
 };
 
@@ -143,7 +144,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .order("started_at"),
     db
       .from("reflections")
-      .select("id, kind, content, reason, is_private")
+      .select("id, kind, content, reason, is_private, media(title)")
       .eq("day", day)
       .in("is_private", privacy)
       .order("kind")
@@ -204,7 +205,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       detail: w.subject,
       is_private: w.is_private,
     })),
-    reflections: (check(reflections) ?? []) as Reflection[],
+    reflections: (check(reflections) ?? []).map((r) => ({ ...r, kind: r.kind as ReflectionKind, media: title(r.media) })),
     learnings: (check(learnings) ?? []).map((l) => ({
       id: l.id,
       title: l.title,

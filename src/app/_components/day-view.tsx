@@ -12,6 +12,7 @@ const REFLECTION_LABEL: Record<Exclude<ReflectionKind, "gratitude">, string> = {
   went_well: "できたこと",
   went_badly: "うまくいかなかったこと",
   carried_over: "繰り越したタスク",
+  lesson: "教訓",
   thought: "考えたこと",
   quiet_good: "静かな良いこと",
   catch_up: "キャッチアップ",
@@ -22,7 +23,6 @@ const KIND_LABEL: Record<LearningKind, string> = {
   knowledge: "知識",
   insight: "気づき",
   practice: "やり方",
-  reflection: "振り返り",
 };
 
 // 最初に出てきた順でまとめる
@@ -325,6 +325,7 @@ export function DayView({ data }: { data: DayData }) {
                               <dd key={r.id} className="text-sm">
                                 ・{r.content}
                                 {r.reason && <span className="text-zinc-500">（{r.reason}）</span>}
+                                {r.media && <span className="text-zinc-500">（{r.media}）</span>}
                                 <PrivateMark show={r.is_private} />
                               </dd>
                             ))}

@@ -16,8 +16,8 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 | 入力の中身 | テーブル |
 |---|---|
-| 知識・気づき・仕事のやり方・振り返りから得た教訓 | `learnings` |
-| その日の出来事の振り返り（ハイライト、感謝、できたこと など） | `reflections` |
+| 知識・気づき・仕事のやり方 | `learnings` |
+| その日の出来事の振り返り（ハイライト、感謝、できたこと、自分の行動から得た教訓 など） | `reflections` |
 | 「明日に向けて」などの約束。翌日以降の Check / Act | `commitments` |
 | 寝た・起きた時刻 | `sleep_logs`（`day` は起きた日） |
 | ラン・筋トレなどの運動 | `workouts` |
@@ -40,7 +40,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 |---|---|
 | `title` | 一言の見出し。30字程度まで |
 | `insight` | 学びの中身を1〜3文で。キャプチャの時刻や Markdown 記法は落とす |
-| `kind` | `knowledge`（知識・用語）／`insight`（気づき・考え方）／`practice`（仕事のやり方・手順）／`reflection`（自分の行動の振り返りから得た教訓） |
+| `kind` | `knowledge`（知識・用語）／`insight`（気づき・考え方）／`practice`（仕事のやり方・手順）。自分の行動を振り返って得た教訓は学びではなく `reflections`（`lesson`）に入れる |
 | `context` | どの場面で得たか（朝礼、案件対応中、読書 など）。分からなければ null |
 | `next_action` | 次にどう活かすか。**入力に書いてあるときだけ** |
 | `project_id` | 特定の案件に関わるときだけ `projects` につなぐ |
@@ -61,6 +61,7 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 | できたこと | `went_well` |
 | うまくいかなかったこと | `went_badly` |
 | 繰り越したタスクと理由 | `carried_over`（理由は `reason` に） |
+| 自分の行動を振り返って得た教訓（次に活かすこと） | `lesson`（本や番組に関わるなら `media_id` もつなぐ） |
 | キャッチアップ | `catch_up` |
 | 今日の音楽 | `music` |
 
