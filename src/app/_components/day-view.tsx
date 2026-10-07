@@ -1,8 +1,7 @@
 import Link from "next/link";
-import type { ChecklistItem, Commitment, DayData, LearningKind, ReflectionKind } from "@/lib/data";
+import type { Commitment, DayData, LearningKind, ReflectionKind } from "@/lib/data";
 import { addDays } from "@/lib/data";
 import { formatDate, formatDuration, formatTime } from "@/lib/format";
-import { BonjiChecklist } from "./bonji";
 import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
 import { Card, CardStack, PairStat, PrivateMark, Section, Stat } from "./ui";
@@ -114,7 +113,7 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
   );
 }
 
-export function DayView({ data, checklist }: { data: DayData; checklist: ChecklistItem[] }) {
+export function DayView({ data }: { data: DayData }) {
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
@@ -191,7 +190,6 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
 
       <div className="grid items-start gap-4 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-3">
         <div className="flex flex-col gap-4">
-          <BonjiChecklist items={checklist} />
           <Section title="学習の時間" aside={studyMin ? formatDuration(studyMin) : undefined}>
             {data.timeLogs.length === 0 ? (
               <p className="px-1 text-sm text-zinc-500">記録なし</p>

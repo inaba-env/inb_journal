@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { resolveViewer } from "@/lib/access";
 import { isValidDate, loadChecklist, loadDay, todayJst } from "@/lib/data";
 import { DayHeader, DayView } from "./day-view";
-import { BonjiProgress } from "./bonji";
+import { Bonji } from "./bonji";
 
 // ホーム（day 省略＝今日）と /days/[date] の共通の中身
 export async function DayPage({ day: requested }: { day?: string }) {
@@ -22,8 +22,8 @@ export async function DayPage({ day: requested }: { day?: string }) {
   return (
     <>
       <DayHeader day={day} today={today} mood={data.mood} />
-      <BonjiProgress items={checklist} />
-      <DayView data={data} checklist={checklist} />
+      <Bonji items={checklist} />
+      <DayView data={data} />
       {isOwner && <p className="text-right text-xs text-zinc-400">本人として閲覧中（非公開の記録も表示）</p>}
     </>
   );
