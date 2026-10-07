@@ -68,6 +68,8 @@ export type DayData = {
     ended_at: string | null;
     note: string | null;
     is_private: boolean;
+    avg_heart_rate: number | null;
+    calories: number | null;
     // ランのとき
     distance_km: number | null;
     // 筋トレのとき（種目ごと、sort_order 順）。筋トレの中身は本人にだけ返し、訪問者には種目もメモも空にする
@@ -122,7 +124,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     db
       .from("activities")
       .select(
-        "id, type, duration_min, started_at, ended_at, note, is_private, runs(distance_km), workouts(exercise, sets, reps, weight_kg, note)",
+        "id, type, duration_min, started_at, ended_at, note, is_private, avg_heart_rate, calories, runs(distance_km), workouts(exercise, sets, reps, weight_kg, note)",
       )
       .eq("day", day)
       .in("is_private", privacy)
