@@ -61,7 +61,16 @@ export type DayData = {
   // その日の夜に寝た時刻（翌日の睡眠の記録の bed_at）
   bedTonight: string | null;
   office: { arrived_at: string | null; left_at: string | null; stay_min: number | null; note: string | null } | null;
-  workouts: { id: string; type: string; distance_km: number | null; duration_min: number | null; note: string | null; is_private: boolean }[];
+  workouts: {
+    id: string;
+    type: string;
+    distance_km: number | null;
+    duration_min: number | null;
+    started_at: string | null;
+    ended_at: string | null;
+    note: string | null;
+    is_private: boolean;
+  }[];
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
   reflections: Reflection[];
@@ -113,7 +122,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
       db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
       db.from("office_logs").select("arrived_at, left_at, stay_min, note").eq("day", day).in("is_private", privacy).maybeSingle(),
-      db.from("workouts").select("id, type, distance_km, duration_min, note, is_private").eq("day", day).in("is_private", privacy),
+      db.from("workouts").select("id, type, distance_km, duration_min, started_at, ended_at, note, is_private").eq("day", day).in("is_private", privacy),
       db
         .from("time_logs")
         .select("id, started_at, ended_at, duration_min, content, note, is_private, time_categories(name), media(title)")

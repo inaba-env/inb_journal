@@ -10,11 +10,13 @@ const HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 export function Timeline({
   day,
   timeLogs,
+  workouts,
   workSessions,
   markers,
 }: {
   day: string;
   timeLogs: TimeBlock[];
+  workouts: TimeBlock[];
   workSessions: TimeBlock[];
   markers: Marker[];
 }) {
@@ -28,6 +30,7 @@ export function Timeline({
         ))}
       </div>
       <Lane title="学習" day={day} blocks={timeLogs} color={timeColor} markers={markers} />
+      <Lane title="運動" day={day} blocks={workouts} color={() => "bg-emerald-500"} markers={markers} />
       <Lane title="Claude Code" day={day} blocks={workSessions} color={workColor} markers={markers} />
       {markers.length > 0 && (
         <p className="ml-16 text-xs text-zinc-500 sm:ml-24">

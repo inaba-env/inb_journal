@@ -112,7 +112,28 @@ export function DayView({ data }: { data: DayData }) {
       </div>
 
       <Card title="タイムライン">
-        <Timeline day={data.day} timeLogs={data.timeLogs} workSessions={data.workSessions} markers={markers} />
+        <Timeline
+          day={data.day}
+          timeLogs={data.timeLogs}
+          workouts={data.workouts.flatMap((w) =>
+            w.started_at && w.ended_at
+              ? [
+                  {
+                    id: w.id,
+                    started_at: w.started_at,
+                    ended_at: w.ended_at,
+                    duration_min: Math.round((Date.parse(w.ended_at) - Date.parse(w.started_at)) / 60000),
+                    category: WORKOUT_LABEL[w.type] ?? w.type,
+                    label: w.distance_km != null ? `${w.distance_km}km` : null,
+                    detail: w.note,
+                    is_private: w.is_private,
+                  },
+                ]
+              : [],
+          )}
+          workSessions={data.workSessions}
+          markers={markers}
+        />
       </Card>
 
       <div className="grid gap-4 lg:grid-cols-2">
