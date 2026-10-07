@@ -31,7 +31,7 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |
 
 - 各テーブルとも RLS を有効にし、`anon` / `authenticated` には権限を与えていない（Data API から直接は読めない）
-- Web が使う `service_role` には `SELECT` だけを与えている
+- Web が使う `service_role` には `SELECT` だけを与えている。書き込みは `~/.secretary/bin/journal-sync.py` が呼ぶ置き換え関数（`replace_work_sessions` / `replace_github_activities`）を通してだけ行える
 - 公開・非公開は各テーブルの `is_private` で決める（`notes` / `sleep_logs` / `habits` / `metrics` など）。件数は非公開の分も含めて出す。`habit_checks` と `metric_logs` は親に従う
 
 ## ローカルで動かす
