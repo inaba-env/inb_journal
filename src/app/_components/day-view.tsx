@@ -6,13 +6,13 @@ import { timeColor } from "./categories";
 import { BlockList, Timeline } from "./timeline";
 import { Card, CardStack, PairStat, PrivateMark, Section, Stat } from "./ui";
 
-const REFLECTION_LABEL: Record<ReflectionKind, string> = {
+// 感謝は「今日の感謝」の欄に出すので、振り返りのカードには出さない
+const REFLECTION_LABEL: Record<Exclude<ReflectionKind, "gratitude">, string> = {
   highlight: "ハイライト",
   went_well: "できたこと",
   went_badly: "うまくいかなかったこと",
   carried_over: "繰り越したタスク",
   thought: "考えたこと",
-  gratitude: "感謝",
   quiet_good: "静かな良いこと",
   catch_up: "キャッチアップ",
   music: "今日の音楽",
@@ -114,6 +114,8 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
 }
 
 export function DayView({ data }: { data: DayData }) {
+  const gratitude = data.reflections.filter((r) => r.kind === "gratitude");
+  const reflections = data.reflections.filter((r) => r.kind !== "gratitude");
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
@@ -284,7 +286,23 @@ export function DayView({ data }: { data: DayData }) {
           </Section>
         </div>
         <div className="flex flex-col gap-4 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          {(data.commitmentsReviewed.length > 0 || data.reflections.length > 0 || data.commitmentsMade.length > 0) && (
+          <Section title="今日の感謝" aside={`${data.gratitudeCount}件`}>
+            <Card title={`感謝 ${data.gratitudeCount}件`}>
+              {gratitude.length > 0 ? (
+                <ul className="-mt-1 flex flex-col gap-1 text-sm">
+                  {gratitude.map((g) => (
+                    <li key={g.id}>
+                      ・{g.content}
+                      <PrivateMark show={g.is_private} />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="-mt-1 text-sm text-zinc-500">{data.gratitudeCount > 0 ? "中身は非公開です" : "記録なし"}</p>
+              )}
+            </Card>
+          </Section>
+          {(data.commitmentsReviewed.length > 0 || reflections.length > 0 || data.commitmentsMade.length > 0) && (
             <Section title="振り返りと約束">
               <CardStack>
                 {data.commitmentsReviewed.length > 0 && (
@@ -292,11 +310,11 @@ export function DayView({ data }: { data: DayData }) {
                     <Commitments items={data.commitmentsReviewed} showResult />
                   </Card>
                 )}
-                {data.reflections.length > 0 && (
+                {reflections.length > 0 && (
                   <Card title="振り返り">
                     <dl className="flex flex-col gap-3">
-                      {(Object.keys(REFLECTION_LABEL) as ReflectionKind[])
-                        .map((kind) => [kind, data.reflections.filter((r) => r.kind === kind)] as const)
+                      {(Object.keys(REFLECTION_LABEL) as (keyof typeof REFLECTION_LABEL)[])
+                        .map((kind) => [kind, reflections.filter((r) => r.kind === kind)] as const)
                         .filter(([, items]) => items.length > 0)
                         .map(([kind, items]) => (
                           <div key={kind}>

@@ -129,6 +129,8 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 
 例外として、`sleep_logs`（起床・就寝）は凡事徹底の中心の項目なので `false`（公開）にする。
 
+感謝（`reflections` の `kind = 'gratitude'`）は、中身を必ず `true`（非公開）にする。件数だけは画面の「今日の感謝」でチームにも見せる。
+
 `days.is_private` は、その日の `mood` を隠すかどうか。私生活に触れていれば `true`。
 
 ## マスターの扱い
