@@ -70,7 +70,7 @@ export async function loadDashboard(includePrivate: boolean) {
       .in("is_private", privacy)
       .gte("day", since)
       .order("day", { ascending: true }),
-    db.from("habits").select("id, name, description, start_on, end_on, is_private, checks:habit_checks(day, done)")
+    db.from("habits").select("id, name, description, start_on, end_on, is_private")
       .in("is_private", privacy)
       .lte("start_on", today)
       .gte("end_on", today)
@@ -85,6 +85,13 @@ export async function loadDashboard(includePrivate: boolean) {
     if (r.error) throw new Error(r.error.message);
   }
 
+  // 達成状況はビュー habit_days で計算する（運動の習慣は workouts から自動で判定される）
+  const habitIds = (habits.data ?? []).map((h) => h.id);
+  const habitDays = habitIds.length
+    ? await db.from("habit_days").select("habit_id, day, done").in("habit_id", habitIds)
+    : { data: [], error: null };
+  if (habitDays.error) throw new Error(habitDays.error.message);
+
   return {
     today,
     since,
@@ -93,7 +100,10 @@ export async function loadDashboard(includePrivate: boolean) {
       tags: (learning_tags as unknown as { tags: { name: string } | null }[]).flatMap((lt) => (lt.tags ? [lt.tags.name] : [])),
     })) as Learning[],
     sleep: (sleep.data ?? []) as SleepLog[],
-    habits: (habits.data ?? []) as Habit[],
+    habits: (habits.data ?? []).map((h) => ({
+      ...h,
+      checks: (habitDays.data ?? []).filter((d) => d.habit_id === h.id),
+    })) as Habit[],
     // 埋め込みの絞り込みはテーブル名で書く必要があるので、別名を付けずに取ってから詰め替える
     metrics: (metrics.data ?? []).map(({ metric_logs, ...m }) => ({ ...m, logs: metric_logs })) as Metric[],
   };

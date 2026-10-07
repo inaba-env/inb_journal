@@ -22,7 +22,8 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 | 寝た・起きた時刻 | `sleep_logs`（`day` は起きた日） |
 | ラン・筋トレなどの運動 | `workouts` |
 | 「〇月は毎日〇〇する」という期間つきの目標 | `habits` |
-| その目標を実施したか | `habit_checks` |
+| その目標を実施したか | `habit_checks`（運動の習慣は不要。下の「habits」参照） |
+| オフィスに着いた・出た時刻 | `office_logs` |
 | 体重・歩数など数値で測るもの | `metrics` / `metric_logs` |
 | 気分 | `days.mood` |
 
@@ -62,6 +63,17 @@ Claude Code が入力（`/learn`、ジャーナル、会話など）を読んで
 - 「気づき・学び」は `reflections` ではなく `learnings` に入れる
 - 「今日のワークアウト」は `workouts` に入れる
 - `sort_order` には、同じ日・同じ `kind` の中での並び順を入れる
+
+## habits
+
+- `workout_types` が入っている習慣（例：毎日なにかしら運動する＝`{run,strength}`）は、`workouts` に記録すれば自動で達成になる。`habit_checks` には書かない
+- それ以外の習慣は、実施した日に `habit_checks` を入れる
+- 達成状況はビュー `habit_days`（習慣×日付の `done`）で見る
+
+## office_logs
+
+- 1日1行。着いた時刻（`arrived_at`）か出た時刻（`left_at`）の片方だけでも入れ、あとからもう片方を埋める
+- 「5時台にオフィス入り」のように分まで分からないときは、`note` に原文を残し、時刻は書かれている範囲の最初（5:00）を入れる
 
 ## commitments
 
