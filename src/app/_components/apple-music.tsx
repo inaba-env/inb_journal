@@ -29,9 +29,16 @@ export function AppleMusicSection({ links, count }: { links: AppleMusicLink[]; c
           {links.map((l) => {
             const embed = embedOf(l.url);
             const heading = [l.title, l.artist].filter(Boolean).join(" — ");
-            return (
-              <article key={l.id} className="flex flex-col gap-2 rounded-2xl border border-line bg-surface p-3 shadow-card">
-                {embed ? (
+            const note = (l.note || l.is_private) && (
+              <p className="text-sm leading-relaxed whitespace-pre-line text-ink/80">
+                {l.note}
+                <PrivateMark show={l.is_private} />
+              </p>
+            );
+            // 埋め込みプレーヤーはそれ自体がカードの見た目なので、外側にカードを重ねない
+            if (embed) {
+              return (
+                <div key={l.id} className="flex flex-col gap-1.5">
                   <iframe
                     src={embed.src}
                     title={heading || "Apple Music"}
@@ -41,22 +48,21 @@ export function AppleMusicSection({ links, count }: { links: AppleMusicLink[]; c
                     sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation"
                     className="w-full overflow-hidden rounded-xl"
                   />
-                ) : (
-                  <a
-                    href={l.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className={`px-2 pt-2 text-[15px] leading-snug font-bold hover:text-accent ${heading ? "" : "font-mono text-[13px] break-all"}`}
-                  >
-                    {heading || l.url}
-                  </a>
-                )}
-                {(l.note || l.is_private) && (
-                  <p className="px-2 pb-1 text-sm leading-relaxed whitespace-pre-line text-ink/80">
-                    {l.note}
-                    <PrivateMark show={l.is_private} />
-                  </p>
-                )}
+                  {note && <div className="px-1">{note}</div>}
+                </div>
+              );
+            }
+            return (
+              <article key={l.id} className="flex flex-col gap-1.5 rounded-2xl border border-line bg-surface p-5 shadow-card">
+                <a
+                  href={l.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`text-[15px] leading-snug font-bold hover:text-accent ${heading ? "" : "font-mono text-[13px] break-all"}`}
+                >
+                  {heading || l.url}
+                </a>
+                {note}
               </article>
             );
           })}
