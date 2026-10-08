@@ -303,17 +303,23 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
         <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          {/* リンクは振り返りの直下、Apple Music は今日の音楽の直下に出す */}
+          {/* Apple Music は今日の音楽の直下、リンクはさらにその下に出す */}
           {others.map((c) => (
             <Fragment key={c.key}>
               <NotesSection category={c} notes={data.notes} counts={data.noteCounts} />
-              {c.key === "reflection" && <LinksSection links={data.links} count={data.linkCount} />}
-              {c.key === "music" && <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />}
+              {c.key === "music" && (
+                <>
+                  <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+                  <LinksSection links={data.links} count={data.linkCount} />
+                </>
+              )}
             </Fragment>
           ))}
-          {!others.some((c) => c.key === "reflection") && <LinksSection links={data.links} count={data.linkCount} />}
           {!others.some((c) => c.key === "music") && (
-            <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+            <>
+              <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+              <LinksSection links={data.links} count={data.linkCount} />
+            </>
           )}
         </div>
       </div>
