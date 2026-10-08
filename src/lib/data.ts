@@ -33,6 +33,15 @@ export type LinkItem = {
   is_private: boolean;
 };
 
+export type AppleMusicLink = {
+  id: string;
+  url: string;
+  title: string | null;
+  artist: string | null;
+  note: string | null;
+  is_private: boolean;
+};
+
 export type NoteCategory = {
   key: string;
   label: string;
@@ -100,6 +109,10 @@ export type DayData = {
   links: LinkItem[];
   // その日のリンクの件数。件数は公開してよいので、非公開のリンクも含めて数える
   linkCount: number;
+  // 聴いた・残しておきたい Apple Music のリンク（ふつうのリンクとは分ける）
+  appleMusic: AppleMusicLink[];
+  // その日の Apple Music のリンクの件数。非公開のものも含めて数える
+  appleMusicCount: number;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -129,7 +142,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -183,6 +196,14 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .order("created_at"),
     // 件数を出すためだけに数える（中身は読まない）
     db.from("links").select("id", { count: "exact", head: true }).eq("day", day),
+    db
+      .from("apple_music_links")
+      .select("id, url, title, artist, note, is_private")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    // 件数を出すためだけに数える（中身は読まない）
+    db.from("apple_music_links").select("id", { count: "exact", head: true }).eq("day", day),
   ]);
 
   const d = check(dayRow);
@@ -265,6 +286,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     linkCount: (() => {
       if (linkCount.error) throw new Error(linkCount.error.message);
       return linkCount.count ?? 0;
+    })(),
+    appleMusic: (check(appleMusic) ?? []) as AppleMusicLink[],
+    appleMusicCount: (() => {
+      if (appleMusicCount.error) throw new Error(appleMusicCount.error.message);
+      return appleMusicCount.count ?? 0;
     })(),
   };
 }
