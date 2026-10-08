@@ -10,6 +10,7 @@ import { LinksSection } from "./links";
 import { NotesSection } from "./notes";
 import { BlockList, Timeline } from "./timeline";
 import { Bonji } from "./bonji";
+import { RefreshButton } from "./refresh-button";
 import { Card, CardStack, EmptyCard, HiddenNote, Metric, PrivateMark, Section } from "./ui";
 
 // 最初に出てきた順でまとめる
@@ -101,6 +102,8 @@ export function DayHeader({
         <NavButton href={day < today ? `/days/${addDays(day, 1)}` : undefined} label="次の日">
           <Chevron direction="right" />
         </NavButton>
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <RefreshButton />
       </nav>
     </header>
   );
