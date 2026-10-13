@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useLayoutEffect, useRef } from "react";
 import { addDays, isValidDate, todayJst } from "@/lib/date";
 import { formatDate } from "@/lib/format";
+import { RefreshButton } from "./refresh-button";
 
 const WEEKDAY_NAMES = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
@@ -52,6 +53,8 @@ export function DayHeader() {
         <NavButton href={day < today ? `/days/${addDays(day, 1)}` : undefined} label="次の日">
           <Chevron direction="right" />
         </NavButton>
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <RefreshButton />
       </nav>
     </header>
   );

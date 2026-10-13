@@ -34,6 +34,15 @@ export type LinkItem = {
   is_private: boolean;
 };
 
+export type AppleMusicLink = {
+  id: string;
+  url: string;
+  title: string | null;
+  artist: string | null;
+  note: string | null;
+  is_private: boolean;
+};
+
 export type NoteCategory = {
   key: string;
   label: string;
@@ -82,9 +91,9 @@ export type DayData = {
     calories: number | null;
     // ランのとき
     distance_km: number | null;
-    // 筋トレのとき（種目ごと、sort_order 順）。筋トレの中身は本人にだけ返し、訪問者には種目もメモも空にする
+    // 筋トレのとき（種目ごと、sort_order 順）。筋トレは本人にだけ返し、訪問者には種類を activity にして中身を空にする
     exercises: Exercise[];
-    // 種目の数。数は公開してよいので訪問者にも返す
+    // 種目の数。訪問者には筋トレだと分からないよう 0 にする
     exercise_count: number;
   }[];
   // その日の運動の回数。回数は公開してよいので、非公開の運動も含めて数える
@@ -101,6 +110,10 @@ export type DayData = {
   links: LinkItem[];
   // その日のリンクの件数。件数は公開してよいので、非公開のリンクも含めて数える
   linkCount: number;
+  // 聴いた・残しておきたい Apple Music のリンク（ふつうのリンクとは分ける）
+  appleMusic: AppleMusicLink[];
+  // その日の Apple Music のリンクの件数。非公開のものも含めて数える
+  appleMusicCount: number;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -116,7 +129,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -170,6 +183,14 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .order("created_at"),
     // 件数を出すためだけに数える（中身は読まない）
     db.from("links").select("id", { count: "exact", head: true }).eq("day", day),
+    db
+      .from("apple_music_links")
+      .select("id, url, title, artist, note, is_private")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("created_at"),
+    // 件数を出すためだけに数える（中身は読まない）
+    db.from("apple_music_links").select("id", { count: "exact", head: true }).eq("day", day),
   ]);
 
   const d = check(dayRow);
@@ -186,10 +207,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       ...a,
       // runs は1対1だが、配列で返ってきても扱えるようにする
       distance_km: [runs].flat()[0]?.distance_km ?? null,
-      // 筋トレの中身（種目とメモ）は is_private に関係なく本人にだけ見せる
-      note: includePrivate || a.type !== "strength" ? a.note : null,
-      exercises: includePrivate ? (workouts as Exercise[]) : [],
-      exercise_count: workouts.length,
+      // 筋トレは is_private に関係なく本人にだけ見せる。訪問者には筋トレだと分からないよう、
+      // 種類を「アクティビティ」にして、種目・種目の数・メモを空にする（時刻と長さは見せる）
+      ...(includePrivate || a.type !== "strength"
+        ? { exercises: workouts as Exercise[], exercise_count: workouts.length }
+        : { type: "activity", note: null, exercises: [], exercise_count: 0 }),
     })),
     activityCount: (() => {
       if (activityCount.error) throw new Error(activityCount.error.message);
@@ -252,6 +274,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     linkCount: (() => {
       if (linkCount.error) throw new Error(linkCount.error.message);
       return linkCount.count ?? 0;
+    })(),
+    appleMusic: (check(appleMusic) ?? []) as AppleMusicLink[],
+    appleMusicCount: (() => {
+      if (appleMusicCount.error) throw new Error(appleMusicCount.error.message);
+      return appleMusicCount.count ?? 0;
     })(),
   };
 }

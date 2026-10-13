@@ -72,13 +72,35 @@ export function Section({
   title,
   count,
   aside,
+  collapsible = false,
   children,
 }: {
   title: string;
   count?: number;
   aside?: React.ReactNode;
+  // true なら見出しを押して開け閉めできるようにし、最初は畳んでおく
+  collapsible?: boolean;
   children: React.ReactNode;
 }) {
+  if (collapsible)
+    return (
+      <details className="group/section">
+        <summary className="cursor-pointer list-none px-1 [&::-webkit-details-marker]:hidden">
+          <Heading
+            title={
+              <>
+                <span className="text-muted transition-transform group-open/section:rotate-90">›</span>
+                {title}
+              </>
+            }
+            count={count}
+            aside={aside}
+            large
+          />
+        </summary>
+        <div className="mt-3">{children}</div>
+      </details>
+    );
   return (
     <section className="flex flex-col gap-3">
       <div className="px-1">

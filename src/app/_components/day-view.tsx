@@ -2,6 +2,7 @@ import { Fragment } from "react";
 import type { ChecklistItem, DayData, Exercise } from "@/lib/data";
 import { formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
+import { AppleMusicSection } from "./apple-music";
 import { GithubSection } from "./github";
 import { LinksSection } from "./links";
 import { NotesSection } from "./notes";
@@ -21,6 +22,8 @@ const ACTIVITY_LABEL: Record<string, string> = {
   strength: "筋トレ",
   stretch: "ストレッチ",
   other: "運動",
+  // 訪問者に見せる筋トレ（筋トレだと分からないようにした種類。data.ts 参照）
+  activity: "アクティビティ",
 };
 
 // 腕立て 10回×3セット / チューブ 3セット / ベンチプレス 40kg 8回×3セット
@@ -73,6 +76,7 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
     ...(data.sleep?.wake_at ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
     ...(data.office?.arrived_at ? [{ at: data.office.arrived_at, label: "オフィス着" }] : []),
     ...(data.office?.left_at ? [{ at: data.office.left_at, label: "オフィス発" }] : []),
+    ...(data.bedTonight ? [{ at: data.bedTonight, label: "就寝" }] : []),
   ];
 
   return (
@@ -220,14 +224,24 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
         <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          {/* リンクは振り返りの直下に出す */}
+          {/* Apple Music は今日の音楽の直下、リンクはさらにその下に出す */}
           {others.map((c) => (
             <Fragment key={c.key}>
               <NotesSection category={c} notes={data.notes} counts={data.noteCounts} />
-              {c.key === "reflection" && <LinksSection links={data.links} count={data.linkCount} />}
+              {c.key === "music" && (
+                <>
+                  <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+                  <LinksSection links={data.links} count={data.linkCount} />
+                </>
+              )}
             </Fragment>
           ))}
-          {!others.some((c) => c.key === "reflection") && <LinksSection links={data.links} count={data.linkCount} />}
+          {!others.some((c) => c.key === "music") && (
+            <>
+              <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+              <LinksSection links={data.links} count={data.linkCount} />
+            </>
+          )}
         </div>
       </div>
     </div>
