@@ -25,6 +25,7 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 | オフィスに着いた・出た時刻 | `office_logs` |
 | Claude Code での作業（時刻レンジ付き） | `work_sessions`（自動。下の「work_sessions」参照） |
 | GitHub での作業（コミット・PR・Issue） | `github_activities`（自動。下の「github_activities」参照） |
+| Aqua Voice（音声入力）の利用状況・短縮した時間 | `aqua_voice_stats`（自動。下の「aqua_voice_stats」参照） |
 | 学習・自己投資の時間（読書、開発、ジャーナリング など） | `time_logs` |
 | 読んだ・聞いたもの（本、Audible、ポッドキャスト、教材） | `media` |
 | 参照したリンク・残しておきたいリンク | `links`（下の「links」参照） |
@@ -105,6 +106,13 @@ Claude Code が入力（会話など）を読んで DB に入れるときの基�
 
 - `~/.secretary/bin/journal-sync.py` が `gh search` で集め、関数 `replace_github_activities` で自動で入れる。毎時0分と8時（前日分）に launchd で実行され（`cc-daily-summary.sh` から呼ぶ）、同じ日の行は丸ごと置き換える。手では入れない
 - 入るのは inaba-env が書いたコミット・作ったPR・マージされたPR・作ったIssue。コミットは GitHub の検索の仕様上、既定ブランチに入ったものだけで、マージコミットは除く
+
+## aqua_voice_stats
+
+- `~/.secretary/bin/journal-sync.py` が Aqua Voice の `users/stats/` を呼び、関数 `replace_aqua_voice_stats` で自動で入れる。毎時0分に launchd で実行され（`cc-daily-summary.sh` から呼ぶ）、その日の行をその時点の値で上書きする。手では入れない
+- Aqua Voice が返すのは当日分（語数・文字数）と累計（短縮時間など）だけで、過去の日の値は取れない。なので入れるのは**今日の行だけ**。8時の前日分の実行では入れず、前日の行は23時台に取れた値で確定する
+- その日に短縮した時間（`time_saved_min`）は、前の日の行の累計（`time_saved_hours`）との差。累計が減った（Aqua Voice 側の集計期間が変わったなど）ときは空にする
+- 認証には Aqua Voice アプリのログイン情報（`~/Library/Application Support/Aqua Voice/settings.json` の `token`）を使う。発行できる API キー（`aqk_…`）は文字起こしの API 専用で、`users/stats/` には通らない
 
 ## time_logs
 
