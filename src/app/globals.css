@@ -63,6 +63,15 @@ body {
   }
 }
 
+/*
+ * 日を移ったあと（day-header.tsx が <html data-navigated> を付ける）は動かさない。移るたびに動くと全部読み込み直したように見えるため。
+ * 前に見た日は隠して残され、戻ると表示し直されて動きがやり直しになるので、それも止める。
+ * 属性は付けっぱなしにする（none から rise に戻すと最初から動き直す）。見出しは作り直されないので、止めても見た目は変わらない
+ */
+html[data-navigated] .rise {
+  animation: none;
+}
+
 @keyframes rise {
   from {
     opacity: 0;
