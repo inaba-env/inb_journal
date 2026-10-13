@@ -8,7 +8,8 @@ type Marker = { at: string; label: string };
 const HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
 // 0:00〜24:00 の帯に、学習・運動・Claude Code・GitHub を段に分けて並べる。
-// 背景・時刻の縦線・起床などの線は全段で1枚につなげ、段の境目に線は引かない
+// 背景・時刻の縦線・起床などの線は全段で1枚につなげ、段の境目に線は引かない。
+// 日付をまたいで寝たときは、就寝の線を右端（24:00）に引く
 export function Timeline({
   day,
   timeLogs,
@@ -61,7 +62,7 @@ export function Timeline({
               <span
                 key={m.label}
                 className="absolute inset-y-0 w-px bg-accent"
-                style={{ left: `${(minutesOfDay(m.at, day) / 1440) * 100}%` }}
+                style={{ left: `${(Math.min(minutesOfDay(m.at, day), 1440) / 1440) * 100}%` }}
               />
             ))}
             {lanes.map((lane, i) => (

@@ -156,6 +156,7 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
     ...(data.sleep?.wake_at ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
     ...(data.office?.arrived_at ? [{ at: data.office.arrived_at, label: "オフィス着" }] : []),
     ...(data.office?.left_at ? [{ at: data.office.left_at, label: "オフィス発" }] : []),
+    ...(data.bedTonight ? [{ at: data.bedTonight, label: "就寝" }] : []),
   ];
 
   return (
