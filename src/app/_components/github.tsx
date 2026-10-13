@@ -22,7 +22,7 @@ export const GITHUB_KIND: Record<GithubActivity["kind"], { label: string; color:
   commit: { label: "コミット", color: "bg-zinc-400 dark:bg-zinc-500", badge: "bg-surface-2 text-muted" },
 };
 
-// リポジトリごとに1枚。PR と Issue は1件ずつ、コミットは数が多いので畳んでおく
+// リポジトリごとに1枚。PR と Issue は1件ずつ、コミットは数が多いので畳んでおく。セクションごと最初は畳む
 export function GithubSection({ activities }: { activities: GithubActivity[] }) {
   const repos = new Map<string, GithubActivity[]>();
   for (const a of activities) repos.set(a.repo, [...(repos.get(a.repo) ?? []), a]);
@@ -30,7 +30,7 @@ export function GithubSection({ activities }: { activities: GithubActivity[] }) 
   const sorted = [...repos.entries()].sort((a, b) => b[1].length - a[1].length);
 
   return (
-    <Section title="GitHub" count={activities.length}>
+    <Section title="GitHub" count={activities.length} collapsible>
       {activities.length === 0 ? (
         <EmptyCard />
       ) : (
