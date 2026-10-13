@@ -90,9 +90,9 @@ export type DayData = {
     calories: number | null;
     // ランのとき
     distance_km: number | null;
-    // 筋トレのとき（種目ごと、sort_order 順）。筋トレの中身は本人にだけ返し、訪問者には種目もメモも空にする
+    // 筋トレのとき（種目ごと、sort_order 順）。筋トレは本人にだけ返し、訪問者には種類を activity にして中身を空にする
     exercises: Exercise[];
-    // 種目の数。数は公開してよいので訪問者にも返す
+    // 種目の数。訪問者には筋トレだと分からないよう 0 にする
     exercise_count: number;
   }[];
   // その日の運動の回数。回数は公開してよいので、非公開の運動も含めて数える
@@ -220,10 +220,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       ...a,
       // runs は1対1だが、配列で返ってきても扱えるようにする
       distance_km: [runs].flat()[0]?.distance_km ?? null,
-      // 筋トレの中身（種目とメモ）は is_private に関係なく本人にだけ見せる
-      note: includePrivate || a.type !== "strength" ? a.note : null,
-      exercises: includePrivate ? (workouts as Exercise[]) : [],
-      exercise_count: workouts.length,
+      // 筋トレは is_private に関係なく本人にだけ見せる。訪問者には筋トレだと分からないよう、
+      // 種類を「アクティビティ」にして、種目・種目の数・メモを空にする（時刻と長さは見せる）
+      ...(includePrivate || a.type !== "strength"
+        ? { exercises: workouts as Exercise[], exercise_count: workouts.length }
+        : { type: "activity", note: null, exercises: [], exercise_count: 0 }),
     })),
     activityCount: (() => {
       if (activityCount.error) throw new Error(activityCount.error.message);

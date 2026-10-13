@@ -25,6 +25,8 @@ const ACTIVITY_LABEL: Record<string, string> = {
   strength: "筋トレ",
   stretch: "ストレッチ",
   other: "運動",
+  // 訪問者に見せる筋トレ（筋トレだと分からないようにした種類。data.ts 参照）
+  activity: "アクティビティ",
 };
 
 // 腕立て 10回×3セット / チューブ 3セット / ベンチプレス 40kg 8回×3セット
