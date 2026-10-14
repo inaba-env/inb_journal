@@ -93,7 +93,6 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
         >
           <Metric
             label="睡眠"
-            className="col-span-2"
             items={[
               { label: "起床", value: data.sleep?.wake_at ? formatTime(data.sleep.wake_at) : null },
               { label: "就寝", value: data.bedTonight ? formatTime(data.bedTonight) : null },
@@ -119,7 +118,6 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
           />
           <Metric
             label="音声入力"
-            className={`col-span-2 ${checklist.length > 0 ? "" : "lg:col-span-4"}`}
             items={[
               {
                 label: "短縮",
