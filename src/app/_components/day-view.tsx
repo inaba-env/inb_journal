@@ -117,6 +117,23 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
             items={[{ label: "合計", value: studyMin ? formatDuration(studyMin) : null }]}
             sub={data.timeLogs.length ? `${data.timeLogs.length}件の記録` : undefined}
           />
+          <Metric
+            label="音声入力"
+            className={`col-span-2 ${checklist.length > 0 ? "" : "lg:col-span-4"}`}
+            items={[
+              {
+                label: "短縮",
+                value: data.aquaVoice?.time_saved_min != null ? formatDuration(data.aquaVoice.time_saved_min) : null,
+              },
+              { label: "文字数", value: data.aquaVoice ? `${data.aquaVoice.characters_today.toLocaleString()}字` : null },
+            ]}
+            sub={
+              data.aquaVoice
+                ? `Aqua Voice・累計 ${data.aquaVoice.time_saved_hours.toFixed(1)}時間` +
+                  (data.aquaVoice.average_cpm != null ? `・平均 ${Math.round(data.aquaVoice.average_cpm)}字/分` : "")
+                : undefined
+            }
+          />
         </div>
       </div>
 

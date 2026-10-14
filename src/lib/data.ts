@@ -114,6 +114,13 @@ export type DayData = {
   appleMusic: AppleMusicLink[];
   // その日の Apple Music のリンクの件数。非公開のものも含めて数える
   appleMusicCount: number;
+  // Aqua Voice（音声入力）の利用状況。その日の最後に取れた値
+  aquaVoice: {
+    time_saved_min: number | null;
+    characters_today: number;
+    time_saved_hours: number;
+    average_cpm: number | null;
+  } | null;
 };
 
 export type ChecklistItem = { id: string; name: string; done: boolean };
@@ -129,7 +136,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount, aquaVoice] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -191,6 +198,12 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       .order("created_at"),
     // 件数を出すためだけに数える（中身は読まない）
     db.from("apple_music_links").select("id", { count: "exact", head: true }).eq("day", day),
+    db
+      .from("aqua_voice_stats")
+      .select("time_saved_min, characters_today, time_saved_hours, average_cpm")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .maybeSingle(),
   ]);
 
   const d = check(dayRow);
@@ -279,6 +292,11 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     appleMusicCount: (() => {
       if (appleMusicCount.error) throw new Error(appleMusicCount.error.message);
       return appleMusicCount.count ?? 0;
+    })(),
+    aquaVoice: (() => {
+      const a = check(aquaVoice);
+      // numeric は文字列で返ってくるので数にする
+      return a && { ...a, time_saved_hours: Number(a.time_saved_hours), average_cpm: a.average_cpm == null ? null : Number(a.average_cpm) };
     })(),
   };
 }
