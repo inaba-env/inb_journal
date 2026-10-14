@@ -288,7 +288,8 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       if (linkCount.error) throw new Error(linkCount.error.message);
       return linkCount.count ?? 0;
     })(),
-    appleMusic: (check(appleMusic) ?? []) as AppleMusicLink[],
+    // リンクに付けたメモは本人にだけ見せる（曲そのものは is_private に従って見せる）
+    appleMusic: ((check(appleMusic) ?? []) as AppleMusicLink[]).map((l) => (includePrivate ? l : { ...l, note: null })),
     appleMusicCount: (() => {
       if (appleMusicCount.error) throw new Error(appleMusicCount.error.message);
       return appleMusicCount.count ?? 0;
