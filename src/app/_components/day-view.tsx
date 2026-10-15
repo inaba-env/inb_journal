@@ -1,4 +1,3 @@
-import { Fragment } from "react";
 import type { ChecklistItem, DayData, Exercise } from "@/lib/data";
 import { formatDuration, formatTime } from "@/lib/format";
 import { timeColor } from "./categories";
@@ -68,9 +67,14 @@ export function DayMeta({ mood, isOwner }: { mood: string | null; isOwner: boole
 }
 
 export function DayView({ data, checklist }: { data: DayData; checklist: ChecklistItem[] }) {
-  // 学びは2列目、それ以外の大分類（振り返り・感謝 など）は3列目に並べる
+  // 学びは2列目、それ以外の大分類（振り返り・感謝 など）は3列目、Apple Music 以下は4列目に並べる
   const learning = data.noteCategories.find((c) => c.key === "learning");
   const others = data.noteCategories.filter((c) => c.key !== "learning");
+  // PC では「今日の音楽」（Apple Music・リンクを含む）から後ろを4列目に分ける
+  const musicIndex = others.findIndex((c) => c.key === "music");
+  const music = musicIndex >= 0 ? others[musicIndex] : undefined;
+  const beforeMusic = musicIndex >= 0 ? others.slice(0, musicIndex) : others;
+  const afterMusic = musicIndex >= 0 ? others.slice(musicIndex + 1) : [];
   const studyMin = data.timeLogs.reduce((s, t) => s + t.duration_min, 0);
   const markers = [
     ...(data.sleep?.wake_at ? [{ at: data.sleep.wake_at, label: "起床" }] : []),
@@ -167,7 +171,7 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
       </div>
 
       <div
-        className="rise grid items-start gap-x-5 gap-y-8 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-3"
+        className="rise grid items-start gap-x-5 gap-y-8 lg:grid-cols-2 lg:grid-rows-[auto_1fr] 2xl:grid-cols-4"
         style={{ "--i": 4 } as React.CSSProperties}
       >
         <div className="flex flex-col gap-8">
@@ -238,25 +242,22 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
         <div className="flex flex-col gap-8 lg:row-span-2">
           {learning && <NotesSection category={learning} notes={data.notes} counts={data.noteCounts} />}
         </div>
-        <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-start-3 2xl:row-start-1">
-          {/* 今日の音楽は Apple Music の直下、リンクはさらにその下に出す */}
-          {others.map((c) =>
-            c.key === "music" ? (
-              <Fragment key={c.key}>
-                <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
-                <NotesSection category={c} notes={data.notes} counts={data.noteCounts} />
-                <LinksSection links={data.links} count={data.linkCount} />
-              </Fragment>
-            ) : (
+        {/* 3列目は振り返り・感謝など、4列目は Apple Music 以下。PC より狭い幅では1列目の下に続けて並べる */}
+        <div className="flex flex-col gap-8 lg:col-start-1 2xl:col-span-2 2xl:col-start-3 2xl:row-start-1 2xl:grid 2xl:grid-cols-2 2xl:items-start 2xl:gap-x-5">
+          <div className="flex flex-col gap-8">
+            {beforeMusic.map((c) => (
               <NotesSection key={c.key} category={c} notes={data.notes} counts={data.noteCounts} />
-            ),
-          )}
-          {!others.some((c) => c.key === "music") && (
-            <>
-              <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
-              <LinksSection links={data.links} count={data.linkCount} />
-            </>
-          )}
+            ))}
+          </div>
+          <div className="flex flex-col gap-8">
+            {/* 今日の音楽は Apple Music の直下、リンクはさらにその下に出す */}
+            <AppleMusicSection links={data.appleMusic} count={data.appleMusicCount} />
+            {music && <NotesSection category={music} notes={data.notes} counts={data.noteCounts} />}
+            <LinksSection links={data.links} count={data.linkCount} />
+            {afterMusic.map((c) => (
+              <NotesSection key={c.key} category={c} notes={data.notes} counts={data.noteCounts} />
+            ))}
+          </div>
         </div>
       </div>
     </div>
