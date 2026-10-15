@@ -3,6 +3,8 @@
 学び・睡眠・習慣・数値の記録を Supabase に貯め、それを見るためだけの Web ページ。
 書き込みは Claude Code から Supabase MCP で行い、Web 側には登録画面を持たない。
 
+ログを集めて入れる側も含めた仕組み全体は [docs/architecture.md](docs/architecture.md) にまとめている。
+
 ```
 Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバー側から読む)──▶ Next.js ──▶ 閲覧者
 ```
