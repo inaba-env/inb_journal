@@ -13,6 +13,7 @@ const TIME: Record<string, string> = {
 
 const WORK: Record<string, string> = {
   時短ヒーロー: "bg-sky-500",
+  スマロボ: "bg-orange-500",
   odesser: "bg-fuchsia-500",
   ナカダイ: "bg-lime-500",
   鈴木商会: "bg-cyan-500",
