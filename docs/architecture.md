@@ -269,6 +269,45 @@ Haiku 側のシステムプロンプトの要点：
 
 ---
 
+## D. 技術情報のキャッチアップ（`catchup.py`）
+
+記録とは別に、追っておきたい技術情報を集めて `/catchup` で読めるようにしている。日の記録ではないので `days` にはぶら下げず、`catchup_reports`（1回分）と `catchup_items`（1件）に入れる。
+
+| 種類 | いつ | 中身 | 届け方 |
+|---|---|---|---|
+| 週次レポート（`weekly`） | 毎週月曜 9:00 | 前の週の AI ツール・海外エンジニアの議論・興味ごと・脆弱性。トップ5件は詳しく、残りは一覧 | `/catchup` ＋ Mac の通知 |
+| 緊急の脆弱性（`alert`） | 毎朝 6:00 | 使っている技術の脆弱性のうち、すぐパッチが要るものだけ。無い日は何もしない | `/catchup` の上 ＋ Mac の通知 |
+
+**流れ**
+
+1. launchd（`com.inaba.secretary.catchup-weekly` / `catchup-alert`）が `~/.secretary/bin/catchup.py weekly|alert` を起動する
+2. 情報源から機械的に集める（LLM は使わない）
+   - 週次：Hacker News（Algolia API で上位、Firebase API で上位コメント）、Reddit（各 subreddit の `/top/.rss?t=week` と上位スレッドのコメント RSS）、Lobsters、Claude Code のリリース、個人ブログ・ニュースレター（Simon Willison・Latent Space・The Pragmatic Engineer）、GitHub Trending、Zenn・Qiita
+   - 脆弱性：Dependabot（org のアラートのうち新しく出た Critical・High）、PHP のリリース（使っている系列でセキュリティ修正を含むもの）、Amazon Linux のセキュリティ情報（ALAS）、CISA KEV（実際に悪用されているもの）
+3. 材料を `claude -p` に渡して選ばせ、JSON で受け取る。週次は Opus、緊急の判定は Sonnet。プロンプトには技術スタックと本人のプロフィール、過去の「役に立った／いらない」を差し込む
+4. コード側でも検査する（section が正しいか、URL が材料にあるか）。材料に無い URL は消す
+5. Data API で `save_catchup_report` を呼んで入れ、`osascript` で通知する
+
+**決まり**
+
+- 情報源・技術スタック（`STACK`）・拾うパッケージは `catchup.py` の先頭の定数で持つ。使う技術が変わったらここを直す
+- Reddit はログインなしだと1分に1回ほどしか受け付けない。リクエストの間を45秒空け、コメントは各 subreddit の1位だけ読む。週次の収集は15分ほどかかる
+- 緊急の判定は、同じ候補を2度判定しないよう `~/.cache/catchup/alert-seen.json` に見た ID と前回の時刻を持つ
+- 週次は同じ週をやり直すと丸ごと置き換わる（反応も消える）。alert は同じ日に足していき、同じ ID は入れ直さない
+- レポートは既定で非公開（`is_private = true`）。チームに見せたい回は `is_private` を `false` にする
+- 「役に立った／いらない」は本人だけが押せる（Server Action で本人か確かめてから `set_catchup_feedback` を呼ぶ）
+- ログは `~/.secretary/ログ/.catchup.log`
+
+試すとき：
+
+```bash
+python3 ~/.secretary/bin/catchup.py weekly --material   # 集めた材料を見るだけ
+python3 ~/.secretary/bin/catchup.py weekly --dry-run    # 選んだ結果を見るだけ（DB に入れない）
+python3 ~/.secretary/bin/catchup.py alert --dry-run
+```
+
+---
+
 ## DB の設計
 
 マイグレーションは `supabase/migrations/`、テーブルの一覧は [README](../README.md#データ)、何をどこに入れるかは [`recording-rules.md`](recording-rules.md)。設計で効いている決まりだけ挙げる。

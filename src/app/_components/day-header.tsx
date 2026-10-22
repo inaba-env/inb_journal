@@ -55,6 +55,10 @@ export function DayHeader() {
         </NavButton>
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
         <RefreshButton />
+        <span className="mx-1 h-5 w-px bg-line" aria-hidden />
+        <NavButton href="/catchup" label="キャッチアップ">
+          キャッチアップ
+        </NavButton>
       </nav>
     </header>
   );
