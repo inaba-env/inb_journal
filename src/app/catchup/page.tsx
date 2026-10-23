@@ -8,7 +8,7 @@ import { resolveViewer } from "@/lib/access";
 import { type CatchupItem, type CatchupReport, type CatchupSection, loadCatchup } from "@/lib/catchup";
 import { todayJst } from "@/lib/date";
 import { Card, CardStack, Pill, PrivateMark, Section } from "../_components/ui";
-import { FeedbackButtons } from "./feedback-buttons";
+import { Feedback } from "./feedback";
 
 export const metadata: Metadata = { title: "キャッチアップ | inb_journal" };
 
@@ -20,7 +20,7 @@ const SECTIONS: { key: CatchupSection; label: string }[] = [
 ];
 
 // 週次レポート（月曜9時に前の週の分）と、直近の緊急の脆弱性を出す。?r=<id> で過去の週を選ぶ。
-// 通勤中にスマホで読む前提なので、幅は読みやすい長さで止める
+// 通勤中にスマホで読む前提なので、幅は読みやすい長さで止め、一覧は見出しだけにして中身は押して開く
 export default function CatchupRoute({ searchParams }: { searchParams: Promise<{ r?: string }> }) {
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-8 pb-16 sm:px-6">
@@ -38,7 +38,7 @@ async function CatchupPage({ searchParams }: { searchParams: Promise<{ r?: strin
   const isOwner = viewer.kind === "owner";
 
   const { r } = await searchParams;
-  const { weekly, alerts, weeklyList } = await loadCatchup(r, isOwner, todayJst());
+  const { weekly, alerts, weeklyList, scope } = await loadCatchup(r, isOwner, todayJst());
 
   return (
     <>
@@ -66,6 +66,18 @@ async function CatchupPage({ searchParams }: { searchParams: Promise<{ r?: strin
       )}
 
       {weekly ? <WeeklyReport report={weekly} isOwner={isOwner} /> : <Card>まだ週次レポートはありません。毎週月曜の9時に前の週の分ができます。</Card>}
+
+      {isOwner && (
+        <Section title="今の関心の範囲" collapsible>
+          <Card>
+            {scope ? (
+              <ScopeBody body={scope.body} />
+            ) : (
+              <p className="text-sm text-muted">まだありません。各項目に「関心あり／知っておくべき／範囲外」やメモを付けると、次のレポートを作るときにここにまとめます。</p>
+            )}
+          </Card>
+        </Section>
+      )}
 
       {weeklyList.length > 1 && (
         <Section title="過去のレポート" collapsible>
@@ -127,27 +139,35 @@ function WeeklyReport({ report, isOwner }: { report: CatchupReport; isOwner: boo
   );
 }
 
+// トップは見出しと要約まで出し、賛否と「試すなら」は押して開く
 function FeaturedCard({ item, isOwner }: { item: CatchupItem; isOwner: boolean }) {
   const section = SECTIONS.find((s) => s.key === item.section)?.label;
+  const hasMore = item.pro || item.con || item.voices || item.action;
   return (
-    <article className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5 shadow-card">
+    <article className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-5 shadow-card">
       <p className="text-xs text-faint">{[section, item.source].filter(Boolean).join("・")}</p>
-      <h3 className="text-[17px] leading-snug font-bold">{item.title}</h3>
+      <h3 className="text-[16px] leading-snug font-bold">{item.title}</h3>
       <p className="text-sm leading-relaxed text-ink/90">{item.summary}</p>
-      {(item.pro || item.con || item.voices) && (
-        <dl className="flex flex-col gap-2 rounded-xl bg-surface-2 p-3.5 text-sm leading-relaxed">
-          <Point label="賛成" text={item.pro} />
-          <Point label="反対" text={item.con} />
-          <Point label="使った人の声" text={item.voices} />
-        </dl>
+      {hasMore && (
+        <details className="group/more">
+          <summary className="cursor-pointer list-none text-xs font-medium text-muted [&::-webkit-details-marker]:hidden">
+            <span className="mr-1 inline-block transition-transform group-open/more:rotate-90">›</span>
+            {item.pro || item.con || item.voices ? "賛否と試すなら" : "試すなら"}
+          </summary>
+          <div className="mt-2.5 flex flex-col gap-2.5">
+            {(item.pro || item.con || item.voices) && (
+              <dl className="flex flex-col gap-2 rounded-xl bg-surface-2 p-3.5 text-sm leading-relaxed">
+                <Point label="賛成" text={item.pro} />
+                <Point label="反対" text={item.con} />
+                <Point label="使った人の声" text={item.voices} />
+              </dl>
+            )}
+            <Action item={item} />
+          </div>
+        </details>
       )}
-      {item.action && (
-        <p className="text-sm leading-relaxed">
-          <span className="mr-2 font-bold text-accent">{item.section === "vuln" ? "対応" : "試すなら"}</span>
-          {item.action}
-        </p>
-      )}
-      <Footer item={item} isOwner={isOwner} />
+      <Links item={item} />
+      {isOwner && <Feedback itemId={item.id} initial={item.feedback} initialNote={item.feedback_note} />}
     </article>
   );
 }
@@ -162,15 +182,41 @@ function Point({ label, text }: { label: string; text: string | null }) {
   );
 }
 
+function Action({ item }: { item: CatchupItem }) {
+  if (!item.action) return null;
+  return (
+    <p className="text-sm leading-relaxed">
+      <span className="mr-2 font-bold text-accent">{item.section === "vuln" ? "対応" : "試すなら"}</span>
+      {item.action}
+    </p>
+  );
+}
+
+// 一覧は見出しだけ。押すと要約・リンク・反応のボタンが開く。反応を付けたものは見出しの横に印を出す
 function ItemRow({ item, isOwner }: { item: CatchupItem; isOwner: boolean }) {
   return (
-    <li className="flex flex-col gap-1.5 py-3.5 first:pt-0 last:pb-0">
-      <h3 className="text-[15px] leading-snug font-bold">
-        {item.title}
-        {item.severity && <span className="ml-2 align-middle"><Pill>{item.severity}</Pill></span>}
-      </h3>
-      <p className="text-sm leading-relaxed text-ink/80">{item.summary}</p>
-      <Footer item={item} isOwner={isOwner} />
+    <li className="py-3 first:pt-0 last:pb-0">
+      <details className="group/row">
+        <summary className="flex cursor-pointer list-none items-start gap-2 [&::-webkit-details-marker]:hidden">
+          <span className="mt-px text-muted transition-transform group-open/row:rotate-90">›</span>
+          <span className="flex-1 text-[15px] leading-snug font-bold">
+            {item.title}
+            {item.severity && (
+              <span className="ml-2 align-middle">
+                <Pill>{item.severity}</Pill>
+              </span>
+            )}
+          </span>
+          {isOwner && item.feedback && <span className="mt-1 size-2 shrink-0 rounded-full bg-accent" aria-label="反応済み" />}
+        </summary>
+        <div className="mt-2 flex flex-col gap-2.5 pl-4">
+          {item.source && <p className="text-xs text-faint">{item.source}</p>}
+          <p className="text-sm leading-relaxed text-ink/80">{item.summary}</p>
+          <Action item={item} />
+          <Links item={item} />
+          {isOwner && <Feedback itemId={item.id} initial={item.feedback} initialNote={item.feedback_note} />}
+        </div>
+      </details>
     </li>
   );
 }
@@ -184,35 +230,47 @@ function AlertCard({ item, day, isOwner }: { item: CatchupItem; day: string; isO
       </p>
       <h3 className="text-[15px] leading-snug font-bold">{item.title}</h3>
       <p className="text-sm leading-relaxed text-ink/90">{item.summary}</p>
-      {item.action && (
-        <p className="text-sm leading-relaxed">
-          <span className="mr-2 font-bold text-accent">対応</span>
-          {item.action}
-        </p>
-      )}
-      <Footer item={item} isOwner={isOwner} />
+      <Action item={item} />
+      <Links item={item} />
+      {isOwner && <Feedback itemId={item.id} initial={item.feedback} initialNote={item.feedback_note} />}
     </article>
   );
 }
 
-// 元記事・議論へのリンクと、本人だけに出す反応のボタン
-function Footer({ item, isOwner }: { item: CatchupItem; isOwner: boolean }) {
-  if (!item.url && !item.thread_url && !isOwner) return null;
+// 元記事・議論へのリンク
+function Links({ item }: { item: CatchupItem }) {
+  if (!item.url && !item.thread_url) return null;
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2">
-      <div className="flex gap-3 text-xs font-medium">
-        {item.url && (
-          <a href={item.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-            元の記事 ↗
-          </a>
-        )}
-        {item.thread_url && item.thread_url !== item.url && (
-          <a href={item.thread_url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
-            議論を読む ↗
-          </a>
-        )}
-      </div>
-      {isOwner && <FeedbackButtons itemId={item.id} initial={item.feedback} />}
+    <div className="flex gap-3 text-xs font-medium">
+      {item.url && (
+        <a href={item.url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          元の記事 ↗
+        </a>
+      )}
+      {item.thread_url && item.thread_url !== item.url && (
+        <a href={item.thread_url} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+          議論を読む ↗
+        </a>
+      )}
+    </div>
+  );
+}
+
+// 関心の範囲（「## 見出し」と「- 箇条書き」だけの Markdown）
+function ScopeBody({ body }: { body: string }) {
+  return (
+    <div className="flex flex-col gap-1 text-sm leading-relaxed">
+      {body.split("\n").map((line, i) => {
+        const t = line.trim();
+        if (!t) return null;
+        if (t.startsWith("## "))
+          return (
+            <h3 key={i} className="pt-2 text-xs font-bold text-muted first:pt-0">
+              {t.slice(3)}
+            </h3>
+          );
+        return <p key={i}>{t.replace(/^[-*]\s*/, "・")}</p>;
+      })}
     </div>
   );
 }

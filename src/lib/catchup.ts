@@ -3,6 +3,7 @@ import { connection } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CatchupSection = "vuln" | "ai_tools" | "discussion" | "interest";
+export type CatchupFeedback = "interested" | "should_know" | "out_of_scope";
 
 export type CatchupItem = {
   id: string;
@@ -18,7 +19,8 @@ export type CatchupItem = {
   url: string | null;
   thread_url: string | null;
   source: string | null;
-  feedback: "useful" | "skip" | null;
+  feedback: CatchupFeedback | null;
+  feedback_note: string | null;
 };
 
 export type CatchupReport = {
@@ -38,10 +40,12 @@ export type CatchupPage = {
   alerts: CatchupReport[];
   // 過去の週次レポート（新しい順）。選ぶためのリンクに使う
   weeklyList: { id: string; period_start: string; period_end: string }[];
+  // 反応からまとめた関心の範囲（Markdown）。本人にだけ返す
+  scope: { body: string; updated_at: string } | null;
 };
 
 const ITEM_COLUMNS =
-  "id, section, featured, title, summary, pro, con, voices, action, severity, url, thread_url, source, feedback";
+  "id, section, featured, title, summary, pro, con, voices, action, severity, url, thread_url, source, feedback, feedback_note";
 const REPORT_COLUMNS = `id, kind, period_start, period_end, headline, is_private, catchup_items(${ITEM_COLUMNS}, sort_order)`;
 
 function check<T>(r: { data: T | null; error: { message: string } | null }): T {
@@ -63,7 +67,7 @@ export async function loadCatchup(reportId: string | undefined, includePrivate: 
   const privacy = includePrivate ? [true, false] : [false];
   const twoWeeksAgo = new Date(Date.parse(`${today}T00:00:00Z`) - 14 * 86400000).toISOString().slice(0, 10);
 
-  const [list, alerts] = await Promise.all([
+  const [list, alerts, scope] = await Promise.all([
     db
       .from("catchup_reports")
       .select("id, period_start, period_end")
@@ -78,6 +82,7 @@ export async function loadCatchup(reportId: string | undefined, includePrivate: 
       .in("is_private", privacy)
       .gte("period_start", twoWeeksAgo)
       .order("period_start", { ascending: false }),
+    includePrivate ? db.from("catchup_scope").select("body, updated_at").maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   const weeklyList = check(list);
 
@@ -92,5 +97,6 @@ export async function loadCatchup(reportId: string | undefined, includePrivate: 
     weekly,
     alerts: (check(alerts) as unknown as ReportRow[]).map(toReport),
     weeklyList,
+    scope: check(scope),
   };
 }

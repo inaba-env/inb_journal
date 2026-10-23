@@ -275,7 +275,7 @@ Haiku 側のシステムプロンプトの要点：
 
 | 種類 | いつ | 中身 | 届け方 |
 |---|---|---|---|
-| 週次レポート（`weekly`） | 毎週月曜 9:00 | 前の週の AI ツール・海外エンジニアの議論・興味ごと・脆弱性。トップ5件は詳しく、残りは一覧 | `/catchup` ＋ Mac の通知 |
+| 週次レポート（`weekly`） | 毎週月曜 9:00 | 前の週の AI ツール・海外エンジニアの議論・興味ごと・脆弱性。全部で10件まで（トップ3件＋各分野3件まで）。一覧は見出しだけで、押すと中身が開く | `/catchup` ＋ Mac の通知 |
 | 緊急の脆弱性（`alert`） | 毎朝 6:00 | 使っている技術の脆弱性のうち、すぐパッチが要るものだけ。無い日は何もしない | `/catchup` の上 ＋ Mac の通知 |
 
 **流れ**
@@ -284,9 +284,10 @@ Haiku 側のシステムプロンプトの要点：
 2. 情報源から機械的に集める（LLM は使わない）
    - 週次：Hacker News（Algolia API で上位、Firebase API で上位コメント）、Reddit（各 subreddit の `/top/.rss?t=week` と上位スレッドのコメント RSS）、Lobsters、Claude Code のリリース、個人ブログ・ニュースレター（Simon Willison・Latent Space・The Pragmatic Engineer）、GitHub Trending、Zenn・Qiita
    - 脆弱性：Dependabot（org のアラートのうち新しく出た Critical・High）、PHP のリリース（使っている系列でセキュリティ修正を含むもの）、Amazon Linux のセキュリティ情報（ALAS）、CISA KEV（実際に悪用されているもの）
-3. 材料を `claude -p` に渡して選ばせ、JSON で受け取る。週次は Opus、緊急の判定は Sonnet。プロンプトには技術スタックと本人のプロフィール、過去の「役に立った／いらない」を差し込む
-4. コード側でも検査する（section が正しいか、URL が材料にあるか）。材料に無い URL は消す
-5. Data API で `save_catchup_report` を呼んで入れ、`osascript` で通知する
+3. 週次は先に「関心の範囲」（`catchup_scope`）をまとめ直す。前回から付いた反応とメモがあれば、今の範囲と合わせて `claude -p`（Sonnet）に「関心あり／知っておくべき／範囲外」の3見出しで書き直させる
+4. 材料を `claude -p` に渡して選ばせ、JSON で受け取る。週次は Opus、緊急の判定は Sonnet。プロンプトには技術スタック・本人のプロフィール・関心の範囲・最近の反応を差し込む
+5. コード側でも検査する（section が正しいか、URL が材料にあるか、深刻度は1語か）。材料に無い URL は消す
+6. Data API で `save_catchup_report` を呼んで入れ、`osascript` で通知する
 
 **決まり**
 
@@ -295,7 +296,8 @@ Haiku 側のシステムプロンプトの要点：
 - 緊急の判定は、同じ候補を2度判定しないよう `~/.cache/catchup/alert-seen.json` に見た ID と前回の時刻を持つ
 - 週次は同じ週をやり直すと丸ごと置き換わる（反応も消える）。alert は同じ日に足していき、同じ ID は入れ直さない
 - レポートは既定で非公開（`is_private = true`）。チームに見せたい回は `is_private` を `false` にする
-- 「役に立った／いらない」は本人だけが押せる（Server Action で本人か確かめてから `set_catchup_feedback` を呼ぶ）
+- 各項目の反応は「関心あり（もっと欲しい）／知っておくべき（興味は薄いが仕事上必要）／範囲外（要らない）」と一言メモ。本人だけが付けられる（Server Action で本人か確かめてから `set_catchup_feedback` を呼ぶ）
+- 関心の範囲は `/catchup` の「今の関心の範囲」で本人だけが見られる
 - ログは `~/.secretary/ログ/.catchup.log`
 
 試すとき：
