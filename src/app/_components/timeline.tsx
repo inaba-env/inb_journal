@@ -7,7 +7,8 @@ type Marker = { at: string; label: string };
 
 const HOURS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
 
-// 0:00〜24:00 の帯に、学習・運動・Claude Code・GitHub を段に分けて並べる。
+// 0:00〜24:00 の帯に、予定・学習・運動・Claude Code・GitHub を段に分けて並べる。
+// 予定は本人にだけ返るので、予定が無い（訪問者が見ている）ときは段ごと出さない。
 // 背景・時刻の縦線・起床などの線は全段で1枚につなげ、段の境目に線は引かない。
 // 日付をまたいで寝たときは、就寝の線を右端（24:00）に引く
 export function Timeline({
@@ -15,6 +16,7 @@ export function Timeline({
   timeLogs,
   activities,
   workSessions,
+  calendarEvents,
   github,
   markers,
 }: {
@@ -22,10 +24,12 @@ export function Timeline({
   timeLogs: TimeBlock[];
   activities: TimeBlock[];
   workSessions: TimeBlock[];
+  calendarEvents: TimeBlock[];
   github: GithubActivity[];
   markers: Marker[];
 }) {
   const lanes = [
+    ...(calendarEvents.length ? [{ title: "予定", placed: stack(calendarEvents, day), color: () => "bg-stone-400" }] : []),
     { title: "学習", placed: stack(timeLogs, day), color: timeColor },
     { title: "運動", placed: stack(activities, day), color: () => "bg-emerald-500" },
     { title: "Claude Code", placed: stack(workSessions, day), color: workColor },

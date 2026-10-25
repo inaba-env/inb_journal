@@ -164,6 +164,7 @@ export function DayView({ data, checklist }: { data: DayData; checklist: Checkli
                 : [],
             )}
             workSessions={data.workSessions}
+            calendarEvents={data.calendarEvents}
             github={data.github}
             markers={markers}
           />

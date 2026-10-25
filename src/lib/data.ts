@@ -100,6 +100,8 @@ export type DayData = {
   activityCount: number;
   timeLogs: TimeBlock[];
   workSessions: TimeBlock[];
+  // Google カレンダーの予定。すべて非公開なので本人にだけ返る
+  calendarEvents: TimeBlock[];
   github: GithubActivity[];
   // 画面に出す大分類（学び・振り返り・感謝 など）と、その日の記録
   noteCategories: NoteCategory[];
@@ -136,7 +138,7 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
   const db = createAdminClient();
   const privacy = includePrivate ? [true, false] : [false];
 
-  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount, aquaVoice] = await Promise.all([
+  const [dayRow, sleep, nextSleep, office, activities, activityCount, timeLogs, workSessions, calendarEvents, github, categories, notes, noteKinds, links, linkCount, appleMusic, appleMusicCount, aquaVoice] = await Promise.all([
     db.from("days").select("mood, is_private").eq("day", day).maybeSingle(),
     db.from("sleep_logs").select("bed_at, wake_at, duration_min, is_private").eq("day", day).in("is_private", privacy).maybeSingle(),
     db.from("sleep_logs").select("bed_at").eq("day", addDays(day, 1)).in("is_private", privacy).maybeSingle(),
@@ -160,6 +162,12 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
     db
       .from("work_sessions")
       .select("id, started_at, ended_at, duration_min, subject, description, is_private, work_categories(name)")
+      .eq("day", day)
+      .in("is_private", privacy)
+      .order("started_at"),
+    db
+      .from("calendar_events")
+      .select("id, started_at, ended_at, duration_min, title, location, is_private")
       .eq("day", day)
       .in("is_private", privacy)
       .order("started_at"),
@@ -249,6 +257,16 @@ export async function loadDay(day: string, includePrivate: boolean): Promise<Day
       label: w.description,
       detail: w.subject,
       is_private: w.is_private,
+    })),
+    calendarEvents: (check(calendarEvents) ?? []).map((e) => ({
+      id: e.id,
+      started_at: e.started_at,
+      ended_at: e.ended_at,
+      duration_min: e.duration_min,
+      category: null,
+      label: e.title,
+      detail: e.location,
+      is_private: e.is_private,
     })),
     github: (check(github) ?? []) as GithubActivity[],
     noteCategories: (check(categories) ?? []).map((c) => ({

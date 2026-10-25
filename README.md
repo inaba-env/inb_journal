@@ -32,12 +32,13 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | `links` | その日に参照したリンク・残しておきたいリンク。画面では「振り返り」の下に出す |
 | `apple_music_links` | Apple Music のリンク（`links` とは別）。画面では「今日の音楽」の下に埋め込みプレーヤーで出す |
 | `sleep_logs` | 睡眠。`day` は起きた日。`duration_min` は自動計算 |
+| `calendar_events` | Google カレンダーの予定（メインのカレンダー。終日予定と欠席した予定は除く）。すべて非公開で、本人にだけタイムラインの「予定」の段に出す |
 | `habits` / `habit_checks` | 凡事徹底のチェックリストの項目（`in_checklist`）と、日ごとのチェック |
 | `metrics` / `metric_logs` | 体重・歩数など、項目を自由に増やせる数値記録 |
 | `catchup_reports` / `catchup_items` / `catchup_scope` | 技術情報のキャッチアップ（週次レポートと緊急の脆弱性）。日の記録ではないので `days` にはぶら下げない。画面は `/catchup`。仕組みは [docs/architecture.md](docs/architecture.md#d-技術情報のキャッチアップcatchuppy) |
 
 - 各テーブルとも RLS を有効にし、`anon` / `authenticated` には権限を与えていない（Data API から直接は読めない）
-- Web が使う `service_role` には `SELECT` だけを与えている。書き込みは `~/.secretary/bin/journal-sync.py` が呼ぶ置き換え関数（`replace_work_sessions` / `replace_github_activities`）と、`catchup.py` が呼ぶ `save_catchup_report`、`save_catchup_scope`、画面の反応（関心あり／知っておくべき／範囲外）が呼ぶ `set_catchup_feedback` を通してだけ行える
+- Web が使う `service_role` には `SELECT` だけを与えている。書き込みは `~/.secretary/bin/journal-sync.py` が呼ぶ置き換え関数（`replace_work_sessions` / `replace_github_activities` / `replace_calendar_events`）と、`catchup.py` が呼ぶ `save_catchup_report`、`save_catchup_scope`、画面の反応（関心あり／知っておくべき／範囲外）が呼ぶ `set_catchup_feedback` を通してだけ行える
 - 公開・非公開は各テーブルの `is_private` で決める（`notes` / `sleep_logs` / `habits` / `metrics` など）。件数は非公開の分も含めて出す。`habit_checks` と `metric_logs` は親に従う
 
 ## ローカルで動かす
