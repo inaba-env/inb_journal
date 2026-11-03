@@ -45,7 +45,7 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 
 ### GitHub（`/github`）
 
-e-value-inc と inaba-env のリポジトリごとに、開いている Issue・PR（うち draft）・`claude` ラベルの付いた開いている Issue の数を出す。Supabase には入れず、ページを開いたときにサーバー側で GitHub の GraphQL API から読む（`src/lib/github.ts`）。
+e-value-inc と inaba-env のリポジトリごとに、開いている Issue・PR（うち draft）・`claude` ラベルの付いた開いている Issue の数を出す。Supabase には入れず、ページを開いたときにサーバー側で GitHub の GraphQL API から読む（`src/lib/github.ts`）。自分の管理下にないリポジトリ（`e-value-inc/kohei-app`）は出さない（`src/lib/github.ts` の `EXCLUDE_REPOS`）。
 
 - アーカイブ済みのリポジトリと、Issue・PR がどちらも 0 件のリポジトリは出さない
 - 結果は 5 分キャッシュする。ページの再読み込みボタンはキャッシュを捨てて取り直す。取得した時刻は見出しの下に出す

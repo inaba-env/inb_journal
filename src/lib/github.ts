@@ -27,6 +27,9 @@ export type GithubOwnerCounts = { fetchedAt: string; repos: GithubRepo[] };
 
 const PR_PAGE = 100;
 
+// 表に出さないリポジトリ（自分の管理下にないもの）。claude-runner の EXCLUDE_REPOS と同じ
+const EXCLUDE_REPOS = new Set(["e-value-inc/kohei-app"]);
+
 const REPOS_FRAGMENT = `
   pageInfo { hasNextPage endCursor }
   nodes {
@@ -89,6 +92,7 @@ export async function loadGithubCounts(owner: GithubOwner): Promise<GithubOwnerC
   do {
     const page: Connection = await query(token, owner, after);
     for (const r of page.nodes) {
+      if (EXCLUDE_REPOS.has(`${owner}/${r.name}`)) continue;
       repos.push({
         owner,
         name: r.name,
