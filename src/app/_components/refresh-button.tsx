@@ -3,17 +3,23 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 
-// ページ全体を読み直さず、サーバーからその日の記録だけを取り直す
-export function RefreshButton() {
+// ページ全体を読み直さず、サーバーから表示中のデータだけを取り直す。
+// サーバー側にキャッシュがあるデータは、先に action でキャッシュを捨てる
+export function RefreshButton({ action, label = "最新の記録を読み込む" }: { action?: () => Promise<void>; label?: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   return (
     <button
       type="button"
-      onClick={() => startTransition(() => router.refresh())}
+      onClick={() =>
+        startTransition(async () => {
+          await action?.();
+          router.refresh();
+        })
+      }
       disabled={pending}
-      aria-label="最新の記録を読み込む"
-      title="最新の記録を読み込む"
+      aria-label={label}
+      title={label}
       className="flex h-9 min-w-9 items-center justify-center rounded-full px-3 text-sm font-medium text-ink transition hover:bg-surface-2 active:scale-[0.96] disabled:text-faint"
     >
       <svg

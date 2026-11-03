@@ -1,5 +1,7 @@
+import { headers } from "next/headers";
 import { connection } from "next/server";
 import { Suspense } from "react";
+import { resolveViewer } from "@/lib/access";
 import { DayHeader, DayHeaderSkeleton } from "../_components/day-header";
 
 // 日のページ（/ と /days/[date]）の共通の枠。幅は画面に合わせて広げ、左右の余白も画面幅に比例させる。見出しはここに置き、日を移っても作り直さない（読み込み直すのは中身だけ）
@@ -14,8 +16,10 @@ export default function JournalLayout({ children }: { children: React.ReactNode 
   );
 }
 
-// 見出しは今日の日付と URL で決まるので、先に描かず（プリレンダーしない）リクエストごとに出す
+// 見出しは今日の日付と URL で決まるので、先に描かず（プリレンダーしない）リクエストごとに出す。
+// /github へのリンクは本人にだけ出す
 async function Header() {
   await connection();
-  return <DayHeader />;
+  const viewer = await resolveViewer(await headers());
+  return <DayHeader isOwner={viewer.kind === "owner"} />;
 }

@@ -17,6 +17,8 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 | 本人 | `OWNER_EMAIL` でログインしている（どこからでも） | すべて（非公開の記録には「非公開」と付く） |
 | それ以外 | — | `/login` に飛ばされる |
 
+`/github`（リポジトリごとの開いている Issue・PR の数）は本人だけが開ける。チームの IP から来ても `/login` に飛ばす。判定は `src/proxy.ts` の `OWNER_ONLY_PATHS` と、ページ側の `resolveViewer` の `kind === "owner"`。ナビのリンクも本人にだけ出す。
+
 - 判定は `src/proxy.ts`（入口）と `src/lib/access.ts` の `resolveViewer`（ページ側）の2か所で行う。proxy だけに頼らない
 - 本人確認は Supabase Auth のメールアドレス＋パスワード。メールのリンク方式は、標準のメール送信が1時間に2通ほどしか送れず、開く端末が違うと失敗するのでやめた
 - パスワードは `scripts/set-owner-password.sh` で付ける（`.env.local` の接続先に対して実行される）
@@ -41,6 +43,21 @@ Claude Code ──(Supabase MCP)──▶ Supabase ──(秘密鍵でサーバ�
 - Web が使う `service_role` には `SELECT` だけを与えている。書き込みは `~/.secretary/bin/journal-sync.py` が呼ぶ置き換え関数（`replace_work_sessions` / `replace_github_activities` / `replace_calendar_events`）と、`catchup.py` が呼ぶ `save_catchup_report`、`save_catchup_scope`、画面の反応（関心あり／知っておくべき／範囲外）が呼ぶ `set_catchup_feedback` を通してだけ行える
 - 公開・非公開は各テーブルの `is_private` で決める（`notes` / `sleep_logs` / `habits` / `metrics` など）。件数は非公開の分も含めて出す。`habit_checks` と `metric_logs` は親に従う
 
+### GitHub（`/github`）
+
+e-value-inc と inaba-env のリポジトリごとに、開いている Issue・PR（うち draft）・`claude` ラベルの付いた開いている Issue の数を出す。Supabase には入れず、ページを開いたときにサーバー側で GitHub の GraphQL API から読む（`src/lib/github.ts`）。
+
+- アーカイブ済みのリポジトリと、Issue・PR がどちらも 0 件のリポジトリは出さない
+- 結果は 5 分キャッシュする。ページの再読み込みボタンはキャッシュを捨てて取り直す。取得した時刻は見出しの下に出す
+- 開いている PR が 100 件を超えるリポジトリは draft の数を数えきれないので「draft 不明」と出す
+- 片方の owner のトークンが無い・取得に失敗したときは、その owner の欄にエラーを出し、もう片方は出す
+- トークンは fine-grained PAT で、Resource owner ごとに作る。権限は Issues・Pull requests・Metadata の Read だけ。`NEXT_PUBLIC_` を付けず、サーバー側（`server-only`）でだけ使う
+
+| 環境変数 | Resource owner |
+|---|---|
+| `GITHUB_TOKEN_ORG` | e-value-inc |
+| `GITHUB_TOKEN_USER` | inaba-env |
+
 ## ローカルで動かす
 
 ```bash
@@ -54,5 +71,5 @@ npm run dev
 ## 本番
 
 - Supabase：本番プロジェクトに `supabase link` → `supabase db push`
-- Vercel：環境変数に `.env.example` の5つを設定する（`SUPABASE_SECRET_KEY` には `NEXT_PUBLIC_` を付けない）
+- Vercel：環境変数に `.env.example` の値を設定する（`SUPABASE_SECRET_KEY`・`GITHUB_TOKEN_*` には `NEXT_PUBLIC_` を付けない）
 - Supabase Auth：新規登録（Sign ups）を無効にし、本人のユーザーを作ってから `scripts/set-owner-password.sh` でパスワードを付ける
