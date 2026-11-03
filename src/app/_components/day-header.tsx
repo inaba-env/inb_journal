@@ -18,7 +18,7 @@ function dayFromPath(pathname: string, today: string): string | null {
 
 // 日付の見出しと前後の日への移動。レイアウトに置き、日を移っても作り直さずに URL から日付だけ変える
 // 日付しか出さない（気分などの記録はページ側に出す）
-export function DayHeader() {
+export function DayHeader({ isOwner }: { isOwner: boolean }) {
   const pathname = usePathname();
   useRiseOnlyOnFirstLoad(pathname);
 
@@ -59,6 +59,11 @@ export function DayHeader() {
         <NavButton href="/catchup" label="キャッチアップ">
           キャッチアップ
         </NavButton>
+        {isOwner && (
+          <NavButton href="/github" label="GitHub">
+            GitHub
+          </NavButton>
+        )}
       </nav>
     </header>
   );

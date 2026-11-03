@@ -3,6 +3,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { clientIp, isAllowedIp } from "@/lib/access";
 
 const PUBLIC_PATHS = ["/login"];
+// 本人（OWNER_EMAIL）だけが開けるページ。チームの IP から来ても通さない
+const OWNER_ONLY_PATHS = ["/github"];
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -32,7 +34,8 @@ export async function proxy(request: NextRequest) {
   const isOwner =
     typeof data?.claims?.email === "string" &&
     data.claims.email.toLowerCase() === process.env.OWNER_EMAIL?.toLowerCase();
-  if (isOwner || isAllowedIp(clientIp(request.headers))) return response;
+  const ownerOnly = OWNER_ONLY_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  if (isOwner || (!ownerOnly && isAllowedIp(clientIp(request.headers)))) return response;
 
   const url = request.nextUrl.clone();
   url.pathname = "/login";
